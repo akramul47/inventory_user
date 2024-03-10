@@ -85,23 +85,75 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Warehouse>> fetchWarehouses(String token) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/warehouses'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+  Future<List<Warehouse>> fetchWarehouses(
+      {bool forceRefresh = false, String? token}) async {
+    try {
+      if (!forceRefresh && _warehouses.isNotEmpty) {
+        // If forceRefresh is false and warehouses are already loaded, return without fetching again
+        return _warehouses;
+      }
 
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final List<dynamic> warehousesData = data['data'];
-      final List<Warehouse> warehouses = warehousesData
-          .map((warehouseJson) => Warehouse.fromJson(warehouseJson))
-          .toList();
-      return warehouses;
-    } else {
+      // Use the provided token or fetch internally if not provided
+      final fetchToken = token ?? await AuthService.getToken();
+      final response = await http.get(
+        Uri.parse('$baseUrl/warehouses'),
+        headers: {
+          'Authorization': 'Bearer $fetchToken',
+        },
+      );
+
+      print('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = jsonDecode(response.body)['data'];
+        _warehouses = responseData.map((data) {
+          final warehouse = Warehouse.fromJson(data);
+          return warehouse;
+        }).toList();
+
+        await saveWarehousesToLocal(_warehouses);
+        notifyListeners();
+        return _warehouses;
+      } else {
+        throw Exception('Failed to fetch warehouses');
+      }
+    } catch (e) {
+      print('Error fetching warehouses: $e');
       throw Exception('Failed to fetch warehouses');
+    }
+  }
+
+  Future<void> saveWarehousesToLocal(List<Warehouse> warehouses) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> warehousesJsonStrings = warehouses
+          .map((warehouse) => jsonEncode(warehouse.toJson()))
+          .toList();
+      await prefs.setStringList('warehouses', warehousesJsonStrings);
+      print('Warehouses: $_warehouses');
+    } catch (e) {
+      print('Error updating local storage: $e');
+      throw Exception('Failed to update local storage');
+    }
+  }
+
+  Future<void> loadWarehousesFromLocal() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String>? warehousesJsonStrings =
+          prefs.getStringList('warehouses');
+      if (warehousesJsonStrings != null) {
+        _warehouses = warehousesJsonStrings
+            .map((jsonString) => Warehouse.fromJson(jsonDecode(jsonString)))
+            .toList();
+        notifyListeners();
+      } else {
+        // If no warehouses are found in local storage, fetch from API
+        await fetchWarehouses(forceRefresh: true);
+      }
+    } catch (e) {
+      print('Error loading warehouses from local storage: $e');
+      throw Exception('Failed to load warehouses from local storage');
     }
   }
 
@@ -147,7 +199,7 @@ class ProductProvider extends ChangeNotifier {
   Future<void> fetchWarehouseCategoryBrand(String token) async {
     try {
       // Fetch warehouses
-      final List<Warehouse> warehouses = await fetchWarehouses(token);
+      final List<Warehouse> warehouses = await fetchWarehouses();
       _warehouses = warehouses;
 
       // Fetch categories

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
+import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/widgets/app_drawer.dart';
 import 'package:inventory_user/widgets/barcode_scanner.dart';
 import 'package:inventory_user/widgets/inventory_card.dart';
 import 'package:inventory_user/widgets/shimmer.dart';
+import 'package:inventory_user/widgets/warehouse_list.dart';
 import 'package:provider/provider.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -19,6 +22,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
+  final RefreshController _refreshController =
+      RefreshController(initialRefresh: false);
 
   @override
   void initState() {
@@ -36,9 +41,13 @@ class _MyHomePageState extends State<MyHomePage>
     try {
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
+      final token = await AuthService.getToken();
+
+      // Fetch products and warehouse data
       await productProvider.fetchProducts(forceRefresh: true);
+      await productProvider.fetchWarehouseCategoryBrand(token);
     } catch (e) {
-      print('Error fetching products: $e');
+      print('Error fetching data: $e');
       // Handle error, e.g., show a snackbar
     }
   }
@@ -127,14 +136,10 @@ class _MyHomePageState extends State<MyHomePage>
           ),
         ),
         drawer: AppDrawer(navigatorKey: GlobalKey<NavigatorState>()),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            // Content of the first tab (ITEMS)
             _ItemsTabContent(),
-            // Content of the second tab (TAGS)
-            Center(
-              child: Text('Content for TAGS tab'),
-            ),
+            WarehouseListWidget(),
           ],
         ),
         floatingActionButton: FloatingActionButton(
@@ -217,4 +222,3 @@ class _ItemsTabContent extends StatelessWidget {
     );
   }
 }
-

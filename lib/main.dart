@@ -19,7 +19,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(isLoggedIn)),
         ChangeNotifierProvider(
-            create: (_) => ProductProvider()..fetchProducts()),
+            create: (_) => ProductProvider()),
       ],
       child: MyApp(navigatorKey: navigatorKey),
     ),
@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
   return Consumer<AuthProvider>(
-      builder: (context, authProvider, _) {  
+      builder: (context, authProvider, _) {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
               title: 'Inventory+',

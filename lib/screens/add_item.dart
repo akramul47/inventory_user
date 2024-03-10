@@ -40,16 +40,33 @@ class _AddItemPageState extends State<AddItemPage> {
   final _descriptionController = TextEditingController();
   final _quantityController = TextEditingController();
   int? _selectedWarehouseId;
+  int? _selectedCategoryId;
+  int? _selectedBrandId;
+  Warehouse? _selectedWarehouse;
+  Category? _selectedCategory;
+  Brand? _selectedBrand;
 
   @override
   void initState() {
     super.initState();
+    final itemProvider = Provider.of<ProductProvider>(context, listen: false);
+    final warehouses = itemProvider.warehouses;
     if (widget.isUpdatingItem && widget.product != null) {
       _barcodeController.text = widget.product!.barcode;
       _nameController.text = widget.product!.name;
       _descriptionController.text = widget.product!.description ?? '';
       _quantityController.text = widget.product!.quantity.toString();
-      _selectedWarehouseId = int.parse(widget.product!.warehouseId);
+      _selectedWarehouse = warehouses.isNotEmpty
+          ? warehouses.firstWhere(
+              (warehouse) =>
+                  warehouse.id == int.parse(widget.product!.warehouseId),
+              orElse: () => warehouses.first,
+            )
+          : Warehouse(id: 0, name: 'Default Warehouse');
+      _selectedCategory = itemProvider.categories
+          .firstWhere((category) => category.id == widget.product!.categoryId);
+      _selectedBrand = itemProvider.brands
+          .firstWhere((brand) => brand.id == widget.product!.brandId);
     } else {
       _barcodeController.text = widget.initialQRCode ?? '';
       _nameController.text = widget.initialName ?? '';
@@ -74,12 +91,6 @@ class _AddItemPageState extends State<AddItemPage> {
     if (_formKey.currentState!.validate()) {
       final String barcode = _barcodeController.text;
       final String name = _nameController.text;
-      final String? description = _descriptionController.text.isEmpty
-          ? null
-          : _descriptionController.text;
-      final int quantity = int.parse(_quantityController.text);
-      final int? warehouseId = _selectedWarehouseId;
-
       try {
         final response = await http.post(
           Uri.parse(
@@ -88,7 +99,9 @@ class _AddItemPageState extends State<AddItemPage> {
             'Authorization': 'Bearer $token',
           },
           body: {
-            'warehouse_id': warehouseId.toString(),
+            'warehouse_id': _selectedWarehouseId.toString(),
+            'category_id': _selectedCategoryId.toString(),
+            'brand_id': _selectedBrandId.toString(),
             'product_name': name,
             'product_retail_price': '0',
             'product_sale_price': '0',
@@ -97,24 +110,20 @@ class _AddItemPageState extends State<AddItemPage> {
           },
         );
 
-        if (response.statusCode == 200) {
-          final Map<String, dynamic> responseData = jsonDecode(response.body);
-          if (responseData['status'] == true) {
-            // Product saved successfully
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Product saved successfully')),
-            );
-            Navigator.pop(context);
-          } else {
-            // Product save failed
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to save product')),
-            );
-          }
-        } else {
-          // Failed to save product
+        final responseData = jsonDecode(response.body);
+
+        if (response.statusCode == 200 && responseData['status'] == true) {
+          // Product saved successfully
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to save product')),
+            const SnackBar(content: Text('Product saved successfully')),
+          );
+          Navigator.pop(context);
+        } else {
+          // Product save failed
+          String errorMessage =
+              responseData['message'] as String? ?? 'Failed to save product';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
           );
         }
       } catch (e) {
@@ -122,6 +131,7 @@ class _AddItemPageState extends State<AddItemPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('An error occurred')),
         );
+        print('Error saving product: $e');
       }
     }
   }
@@ -130,6 +140,8 @@ class _AddItemPageState extends State<AddItemPage> {
   Widget build(BuildContext context) {
     final itemProvider = Provider.of<ProductProvider>(context);
     final warehouses = itemProvider.warehouses;
+    final categories = itemProvider.categories;
+    final brands = itemProvider.brands;
 
     return Scaffold(
       appBar: AppBar(
@@ -156,7 +168,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   child: CircleAvatar(
                     backgroundColor: Colors.redAccent[200],
                     radius: 40,
-                    child: Icon(
+                    child: const Icon(
                       Icons.add_a_photo,
                       color: Colors.white,
                       size: 30,
@@ -164,11 +176,40 @@ class _AddItemPageState extends State<AddItemPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
+                // Existing images
+                if (widget.product != null &&
+                    widget.product!.imageUrls.isNotEmpty)
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8.0,
+                      mainAxisSpacing: 8.0,
+                    ),
+                    itemCount: widget.product!.imageUrls.length,
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        widget.product!.imageUrls[index],
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  ),
+                const SizedBox(
+                  height: 16,
+                ),
+                const Divider(),
+                const SizedBox(
+                  height: 16,
+                ),
+                // Show picked images
                 if (_imageFiles != null && _imageFiles!.isNotEmpty)
                   GridView.builder(
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       crossAxisSpacing: 8.0,
                       mainAxisSpacing: 8.0,
@@ -208,44 +249,70 @@ class _AddItemPageState extends State<AddItemPage> {
                   },
                 ),
                 const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Quantity',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a quantity';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                DropdownButtonFormField<int>(
-                  value: _selectedWarehouseId,
+                DropdownButtonFormField<Warehouse>(
+                  value: _selectedWarehouse,
                   hint: const Text('Select Warehouse'),
                   items: warehouses.map((warehouse) {
-                    return DropdownMenuItem<int>(
-                      value: warehouse.id,
+                    return DropdownMenuItem<Warehouse>(
+                      value: warehouse,
                       child: Text(warehouse.name),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedWarehouseId = value;
+                      _selectedWarehouse = value;
+                      _selectedWarehouseId = value?.id;
                     });
                   },
                   validator: (value) {
                     if (value == null) {
                       return 'Please select a warehouse';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16.0),
+                DropdownButtonFormField<Category>(
+                  value: _selectedCategory,
+                  hint: const Text('Select Category'),
+                  items: categories.map((category) {
+                    return DropdownMenuItem<Category>(
+                      value: category,
+                      child: Text(category.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                      _selectedCategoryId = value?.id;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select a category';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16.0),
+                DropdownButtonFormField<Brand>(
+                  value: _selectedBrand,
+                  hint: const Text('Select Brand'),
+                  items: brands.map((brand) {
+                    return DropdownMenuItem<Brand>(
+                      value: brand,
+                      child: Text(brand.name),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedBrand = value;
+                      _selectedBrandId = value?.id;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Please select a brand';
                     }
                     return null;
                   },
