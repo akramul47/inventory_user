@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:inventory_user/main.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,6 +26,12 @@ class AuthProvider extends ChangeNotifier {
       // Clear SharedPreferences data
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear();
+
+      // Remove the token from local storage
+      await AuthService.removeToken();
+
+      // Navigate to the login page
+      navigatorKey.currentState?.pushReplacementNamed('/login');
 
       // Set _isLoggedIn to false
       _isLoggedIn = false;

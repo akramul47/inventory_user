@@ -136,14 +136,20 @@ class _AddItemPageState extends State<AddItemPage> {
 
         // Add image files
         if (_imageFiles.isNotEmpty) {
+          print('Selected image count: ${_imageFiles.length}');
           for (var imageFile in _imageFiles) {
-            final imageBytes = await imageFile.readAsBytes();
-            final multipartFile = http.MultipartFile.fromBytes(
-              'image[]',
-              imageBytes,
-              filename: imageFile.path.split('/').last,
-            );
-            request.files.add(multipartFile);
+            try {
+              final imageBytes = await imageFile.readAsBytes();
+              final multipartFile = http.MultipartFile.fromBytes(
+                'image[]',
+                imageBytes,
+                filename: imageFile.path.split('/').last,
+              );
+              request.files.add(multipartFile);
+            } catch (e) {
+              print('Error reading image file: $e');
+              // Handle the error here, maybe show a snackbar to the user
+            }
           }
         }
 
@@ -181,7 +187,6 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-
   Future<void> _postProduct() async {
     final String barcode = _barcodeController.text;
     final String name = _nameController.text;
@@ -206,14 +211,20 @@ class _AddItemPageState extends State<AddItemPage> {
 
       // Add image files
       if (_imageFiles.isNotEmpty) {
+        print('Selected image count: ${_imageFiles.length}');
         for (var imageFile in _imageFiles) {
-          final imageBytes = await imageFile.readAsBytes();
-          final multipartFile = http.MultipartFile.fromBytes(
-            'image[]',
-            imageBytes,
-            filename: imageFile.path.split('/').last,
-          );
-          request.files.add(multipartFile);
+          try {
+            final imageBytes = await imageFile.readAsBytes();
+            final multipartFile = http.MultipartFile.fromBytes(
+              'image[]',
+              imageBytes,
+              filename: imageFile.path.split('/').last,
+            );
+            request.files.add(multipartFile);
+          } catch (e) {
+            print('Error reading image file: $e');
+            // Handle the error here, maybe show a snackbar to the user
+          }
         }
       }
 

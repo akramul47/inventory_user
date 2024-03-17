@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:inventory_user/main.dart';
 import 'package:inventory_user/models/product_model.dart';
+import 'package:inventory_user/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
 
@@ -18,6 +21,21 @@ class ProductProvider extends ChangeNotifier {
   List<Warehouse> get warehouses => _warehouses;
   List<Category> get categories => _categories;
   List<Brand> get brands => _brands;
+
+  Future<void> logoutUser() async {
+    try {
+      // Remove the token from local storage
+      await AuthService.removeToken();
+
+      // Notify the AuthProvider about the logout
+      final authProvider = Provider.of<AuthProvider>(
+          navigatorKey.currentContext!,
+          listen: false);
+      await authProvider.logout();
+    } catch (e) {
+      print('Error during logout: $e');
+    }
+  }
 
   Future<List<Product>> fetchProducts({bool forceRefresh = false}) async {
     try {
@@ -47,13 +65,26 @@ class ProductProvider extends ChangeNotifier {
         await saveProductsToLocal(_products);
         notifyListeners();
         return _products;
-      } else {
-        throw Exception('Failed to fetch products');
+       } else {
+        // Check if the response indicates an invalid token
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData['message'] == 'Token has expired') {
+          // Token has expired, log out the user and show a snackbar
+          await logoutUser();
+          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out. Token expired!'),
+            ),
+          );
+        } else {
+          throw Exception('Failed to fetch products');
+        }
       }
     } catch (e) {
       print('Error fetching products: $e');
       throw Exception('Failed to fetch products');
     }
+    return [];
   }
 
   Future<void> saveProductsToLocal(List<Product> products) async {
