@@ -85,6 +85,45 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateProduct({
+    required int id,
+    required Map<String, dynamic> updatedFields,
+    required String token,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/products/update/$id'),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(updatedFields),
+      );
+
+      if (response.statusCode == 200) {
+        // Update local data
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final Product updatedProduct =
+            Product.fromJson(responseData['product']);
+        updateProductLocally(updatedProduct);
+      } else {
+        throw Exception('Failed to update product: ${response.statusCode}');
+      }
+    } catch (error) {
+      print('Error updating product: $error');
+      throw Exception('Failed to update product');
+    }
+  }
+
+  void updateProductLocally(Product updatedProduct) {
+    final index =
+        _products.indexWhere((product) => product.id == updatedProduct.id);
+    if (index != -1) {
+      _products[index] = updatedProduct;
+      notifyListeners();
+    }
+  }
+
   Future<List<Warehouse>> fetchWarehouses(
       {bool forceRefresh = false, String? token}) async {
     try {
@@ -227,15 +266,5 @@ class ProductProvider extends ChangeNotifier {
   void removeProductById(int id) {
     _products.removeWhere((product) => product.id == id);
     notifyListeners();
-  }
-
-  // Method to update an existing product
-  void updateProduct(Product updatedProduct) {
-    final index =
-        _products.indexWhere((product) => product.id == updatedProduct.id);
-    if (index != -1) {
-      _products[index] = updatedProduct;
-      notifyListeners();
-    }
   }
 }

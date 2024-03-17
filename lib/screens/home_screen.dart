@@ -3,12 +3,11 @@ import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/widgets/app_drawer.dart';
-import 'package:inventory_user/widgets/barcode_scanner.dart';
 import 'package:inventory_user/widgets/inventory_card.dart';
+import 'package:inventory_user/widgets/scanner.dart';
 import 'package:inventory_user/widgets/shimmer.dart';
 import 'package:inventory_user/widgets/warehouse_list.dart';
 import 'package:provider/provider.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
@@ -22,9 +21,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
-  final RefreshController _refreshController =
-      RefreshController(initialRefresh: false);
-
+  bool _isLoading = true;
   @override
   void initState() {
     super.initState();
@@ -32,9 +29,15 @@ class _MyHomePageState extends State<MyHomePage>
       vsync: this,
       duration: const Duration(milliseconds: 200),
     );
-
     // Fetch data on initialization
     _fetchData();
+
+    // Simulating a delay of 2 seconds before showing the card items
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
   }
 
   Future<void> _fetchData() async {
@@ -58,18 +61,12 @@ class _MyHomePageState extends State<MyHomePage>
     super.dispose();
   }
 
-  Future<void> _handleScanBarcode() async {
-    // Call BarcodeScanner.scanBarcode function when "Add New From QR Code" is selected
-    String? scannedQRCode = await BarcodeScanner.scanBarcode();
-    if (scannedQRCode != null) {
-      // Navigate to AddItemPage and pass the scanned QR code as a parameter
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddItemPage(initialQRCode: scannedQRCode),
-        ),
-      );
-    }
+  void _handleCodeScanned(String code) {
+    // Navigate to the "add item" page while passing the scanned code as a parameter
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddItemPage(initialQRCode: code)),
+    );
   }
 
   @override
@@ -92,7 +89,9 @@ class _MyHomePageState extends State<MyHomePage>
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: _handleScanBarcode,
+                    onPressed: () async {
+                      await BarcodeHelper.scanBarcodeAndNavigate(context);
+                    },
                     icon: const Icon(Icons.qr_code_scanner_outlined),
                     iconSize: 30,
                     color: Colors.white,
@@ -154,7 +153,9 @@ class _MyHomePageState extends State<MyHomePage>
             ),
             itemBuilder: (context) => [
               PopupMenuItem(
-                onTap: _handleScanBarcode,
+                onTap: () async {
+                  await BarcodeHelper.scanBarcodeAndNavigate(context);
+                },
                 child: const Row(
                   children: [
                     Icon(
@@ -202,8 +203,26 @@ class _MyHomePageState extends State<MyHomePage>
   }
 }
 
-class _ItemsTabContent extends StatelessWidget {
+class _ItemsTabContent extends StatefulWidget {
   const _ItemsTabContent({Key? key}) : super(key: key);
+
+  @override
+  State<_ItemsTabContent> createState() => _ItemsTabContentState();
+}
+
+class _ItemsTabContentState extends State<_ItemsTabContent> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Simulating a delay of 2 seconds before showing the card items
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -211,8 +230,8 @@ class _ItemsTabContent extends StatelessWidget {
       builder: (context, productProvider, _) {
         final products = productProvider.products;
 
-        // If products is empty, show circular progress indicator
-        if (products.isEmpty) {
+        // If products is empty or still loading, show circular progress indicator
+        if (_isLoading || products.isEmpty) {
           return CardSkeleton();
         }
 

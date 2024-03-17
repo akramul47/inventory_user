@@ -15,6 +15,8 @@ class AddItemPage extends StatefulWidget {
     this.initialName,
     this.initialDescription,
     this.initialQuantity,
+    this.initialRetailPrice,
+    this.initialSalePrice,
     this.initialWarehouseTag,
     this.product,
     this.isUpdatingItem = false,
@@ -24,6 +26,8 @@ class AddItemPage extends StatefulWidget {
   final String? initialName;
   final String? initialDescription;
   final String? initialQuantity;
+  final String? initialRetailPrice;
+  final String? initialSalePrice;
   final String? initialWarehouseTag;
   final Product? product;
   final bool isUpdatingItem;
@@ -33,12 +37,14 @@ class AddItemPage extends StatefulWidget {
 }
 
 class _AddItemPageState extends State<AddItemPage> {
-  List<XFile>? _imageFiles;
+  List<File> _imageFiles = [];
   final _formKey = GlobalKey<FormState>();
   final _barcodeController = TextEditingController();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _quantityController = TextEditingController();
+  final _retailPriceController = TextEditingController();
+  final _salePriceController = TextEditingController();
   int? _selectedWarehouseId;
   int? _selectedCategoryId;
   int? _selectedBrandId;
@@ -56,6 +62,8 @@ class _AddItemPageState extends State<AddItemPage> {
       _nameController.text = widget.product!.name;
       _descriptionController.text = widget.product!.description ?? '';
       _quantityController.text = widget.product!.quantity.toString();
+      _retailPriceController.text = widget.product!.retailPrice.toString();
+      _salePriceController.text = widget.product!.salePrice.toString();
       _selectedWarehouse = warehouses.isNotEmpty
           ? warehouses.firstWhere(
               (warehouse) =>
@@ -72,6 +80,8 @@ class _AddItemPageState extends State<AddItemPage> {
       _nameController.text = widget.initialName ?? '';
       _descriptionController.text = widget.initialDescription ?? '';
       _quantityController.text = widget.initialQuantity ?? '';
+      _retailPriceController.text = widget.initialRetailPrice ?? '';
+      _salePriceController.text = widget.initialSalePrice ?? '';
       _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
     }
   }
@@ -81,58 +91,201 @@ class _AddItemPageState extends State<AddItemPage> {
 
     if (pickedFiles != null) {
       setState(() {
-        _imageFiles = pickedFiles;
+        _imageFiles =
+            pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
       });
     }
   }
 
   Future<void> _saveProduct() async {
-    final token = await AuthService.getToken();
     if (_formKey.currentState!.validate()) {
-      final String barcode = _barcodeController.text;
-      final String name = _nameController.text;
-      try {
-        final response = await http.post(
-          Uri.parse(
-              'https://warehouse.z8tech.one/Backend/public/api/products/store'),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-          body: {
-            'warehouse_id': _selectedWarehouseId.toString(),
-            'category_id': _selectedCategoryId.toString(),
-            'brand_id': _selectedBrandId.toString(),
-            'product_name': name,
-            'product_retail_price': '0',
-            'product_sale_price': '0',
-            'scan_code': barcode,
-            'image[]': _imageFiles?.map((file) => file.path).toList().join(','),
-          },
-        );
+      if (widget.isUpdatingItem) {
+        await _updateProduct();
+      } else {
+        await _postProduct();
+      }
+    } else {
+      print('Validation errors');
+    }
+  }
+
+  Future<void> _updateProduct() async {
+    final String name = _nameController.text;
+    final double retailPrice = double.parse(_retailPriceController.text);
+    final double salePrice = double.parse(_salePriceController.text);
+    final token = await AuthService.getToken();
+
+    try {
+      // Get the product ID from the product provider
+      final productId = widget.product?.id;
+
+      if (productId != null) {
+        final uri = Uri.parse(
+            'https://warehouse.z8tech.one/Backend/public/api/products/update/$productId');
+        final request = http.MultipartRequest('PUT', uri);
+        request.headers['Authorization'] = 'Bearer $token';
+
+        // Add text fields
+        request.fields['id'] = productId.toString(); // Include product ID
+        request.fields['warehouse_id'] = _selectedWarehouseId.toString();
+        request.fields['category_id'] = _selectedCategoryId.toString();
+        request.fields['brand_id'] = _selectedBrandId.toString();
+        request.fields['product_name'] = name;
+        request.fields['product_retail_price'] = retailPrice.toString();
+        request.fields['product_sale_price'] = salePrice.toString();
+
+        // Add image files
+        if (_imageFiles.isNotEmpty) {
+          for (var imageFile in _imageFiles) {
+            final imageBytes = await imageFile.readAsBytes();
+            final multipartFile = http.MultipartFile.fromBytes(
+              'image[]',
+              imageBytes,
+              filename: imageFile.path.split('/').last,
+            );
+            request.files.add(multipartFile);
+          }
+        }
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
+
+        print('Response status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
 
         final responseData = jsonDecode(response.body);
 
         if (response.statusCode == 200 && responseData['status'] == true) {
-          // Product saved successfully
+          // Product updated successfully
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Product saved successfully')),
+            const SnackBar(content: Text('Product updated successfully')),
           );
           Navigator.pop(context);
         } else {
-          // Product save failed
+          // Product update failed
           String errorMessage =
-              responseData['message'] as String? ?? 'Failed to save product';
+              responseData['message'] as String? ?? 'Failed to update product';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
         }
-      } catch (e) {
-        // Exception occurred
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('An error occurred')),
-        );
-        print('Error saving product: $e');
+      } else {
+        throw Exception('Product ID is null');
       }
+    } catch (e) {
+      // Exception occurred
+      print('Error updating product: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred')),
+      );
+    }
+  }
+
+
+  Future<void> _postProduct() async {
+    final String barcode = _barcodeController.text;
+    final String name = _nameController.text;
+    final double retailPrice = double.parse(_retailPriceController.text);
+    final double salePrice = double.parse(_salePriceController.text);
+    final token = await AuthService.getToken();
+
+    try {
+      final uri = Uri.parse(
+          'https://warehouse.z8tech.one/Backend/public/api/products/store');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add text fields
+      request.fields['warehouse_id'] = _selectedWarehouseId.toString();
+      request.fields['category_id'] = _selectedCategoryId.toString();
+      request.fields['brand_id'] = _selectedBrandId.toString();
+      request.fields['product_name'] = name;
+      request.fields['product_retail_price'] = retailPrice.toString();
+      request.fields['product_sale_price'] = salePrice.toString();
+      request.fields['scan_code'] = barcode;
+
+      // Add image files
+      if (_imageFiles.isNotEmpty) {
+        for (var imageFile in _imageFiles) {
+          final imageBytes = await imageFile.readAsBytes();
+          final multipartFile = http.MultipartFile.fromBytes(
+            'image[]',
+            imageBytes,
+            filename: imageFile.path.split('/').last,
+          );
+          request.files.add(multipartFile);
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['status'] == true) {
+        // Product saved successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product saved successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        // Product save failed
+        String errorMessage =
+            responseData['message'] as String? ?? 'Failed to save product';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      // Exception occurred
+      print('Error saving product: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred')),
+      );
+    }
+  }
+
+  Future<void> _deleteProduct() async {
+    final token = await AuthService.getToken();
+    final productId = widget.product?.id;
+
+    try {
+      if (productId != null) {
+        final uri = Uri.parse(
+            'https://warehouse.z8tech.one/Backend/public/api/products/delete/$productId');
+        final response = await http.delete(
+          uri,
+          headers: {'Authorization': 'Bearer $token'},
+        );
+
+        if (response.statusCode == 200) {
+          final responseData = jsonDecode(response.body);
+          if (responseData['status'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Item deleted successfully')),
+            );
+            Navigator.pop(context); // Go back to previous route
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(responseData['message'])),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete item')),
+          );
+        }
+      } else {
+        throw Exception('Product ID is null');
+      }
+    } catch (e) {
+      print('Error deleting product: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred')),
+      );
     }
   }
 
@@ -249,6 +402,34 @@ class _AddItemPageState extends State<AddItemPage> {
                   },
                 ),
                 const SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _retailPriceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Retail Price',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a retail price';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _salePriceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Sale Price',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a sale price';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: 16.0),
                 DropdownButtonFormField<Warehouse>(
                   value: _selectedWarehouse,
                   hint: const Text('Select Warehouse'),
@@ -323,7 +504,8 @@ class _AddItemPageState extends State<AddItemPage> {
                     padding: const EdgeInsets.all(15.0),
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Implement delete functionality
+                        // Show delete confirmation dialog
+                        _showDeleteConfirmationDialog(context);
                       },
                       icon: const Icon(Icons.delete),
                       label: const Text('Delete'),
@@ -372,6 +554,33 @@ class _AddItemPageState extends State<AddItemPage> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Item'),
+          content: Text('Are you sure you want to delete this item?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // Dismiss the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(true); // Dismiss the dialog
+                await _deleteProduct(); // Call delete method
+              },
+              child: Text('Delete'),
+            ),
+          ],
         );
       },
     );

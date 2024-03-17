@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
 import 'package:inventory_user/providers/product_provider.dart';
+import 'package:inventory_user/screens/add_item.dart';
 import 'package:inventory_user/screens/home_screen.dart';
 import 'package:inventory_user/screens/login_screen.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
@@ -18,14 +19,12 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider(isLoggedIn)),
-        ChangeNotifierProvider(
-            create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
       ],
       child: MyApp(navigatorKey: navigatorKey),
     ),
   );
 }
-
 
 class MyApp extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
@@ -33,20 +32,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return Consumer<AuthProvider>(
+    return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-            return MaterialApp(
-              debugShowCheckedModeBanner: false,
-              title: 'Inventory+',
-              theme: ThemeData.light(useMaterial3: true),
-              darkTheme: ThemeData.dark(useMaterial3: true),
-              themeMode: ThemeMode.system,
-              navigatorKey: navigatorKey,
-              home: authProvider.isLoggedIn
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Inventory+',
+          theme: ThemeData.light(useMaterial3: true),
+          darkTheme: ThemeData.dark(useMaterial3: true),
+          themeMode: ThemeMode.system,
+          navigatorKey: navigatorKey,
+          home: authProvider.isLoggedIn
               ? MyHomePage(title: 'Inventory+')
               : LoginPage(),
           routes: {
             '/login': (context) => LoginPage(),
+            '/add_item': (context) => AddItemPage(),
             // Define other routes as needed
           },
         );

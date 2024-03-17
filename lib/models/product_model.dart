@@ -42,8 +42,8 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     List<String> images = [];
     if (json['product_images'] != null) {
-      images = List<String>.from(json['product_images']
-          .map((imageJson) => '$baseUrlWithoutApi/${imageJson['image']}'));
+      images = List<String>.from(json['product_images'].map(
+          (imageJson) => '$baseUrlWithoutApi/${imageJson['image'] ?? ''}'));
     }
 
     return Product(
@@ -64,17 +64,18 @@ class Product {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
-      description: json['description'],
+      description:
+          json['description'] ?? '', // Handle null value for description
       quantity: json['quantity'] ?? 0,
       imageUrl: json['product_images'] != null &&
               json['product_images'].isNotEmpty &&
               json['product_images'][0]['image'] != null
           ? '$baseUrl/${json['product_images'][0]['image']}'
-          : '',
+          : '', // Handle null value for imageUrl
       warehouseTag:
           json['warehouse'] != null && json['warehouse']['name'] != null
               ? json['warehouse']['name'].toString()
-              : '',
+              : '', // Handle null value for warehouseTag
       imageUrls: images,
     );
   }
