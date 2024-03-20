@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
@@ -51,7 +52,8 @@ class _AddItemPageState extends State<AddItemPage> {
   Warehouse? _selectedWarehouse;
   Category? _selectedCategory;
   Brand? _selectedBrand;
-
+  bool _isSaving = false;
+  
   @override
   void initState() {
     super.initState();
@@ -71,10 +73,24 @@ class _AddItemPageState extends State<AddItemPage> {
               orElse: () => warehouses.first,
             )
           : Warehouse(id: 0, name: 'Default Warehouse');
+      _selectedWarehouseId = int.parse(widget.product!.warehouseId);
       _selectedCategory = itemProvider.categories
           .firstWhere((category) => category.id == widget.product!.categoryId);
+      _selectedCategoryId = widget.product!.categoryId;
       _selectedBrand = itemProvider.brands
           .firstWhere((brand) => brand.id == widget.product!.brandId);
+      _selectedBrandId = widget.product!.brandId;
+
+      // Print statements for debugging
+      print('Barcode: ${_barcodeController.text}');
+      print('Name: ${_nameController.text}');
+      print('Description: ${_descriptionController.text}');
+      print('Quantity: ${_quantityController.text}');
+      print('Retail Price: ${_retailPriceController.text}');
+      print('Sale Price: ${_salePriceController.text}');
+      print('Selected Warehouse ID: $_selectedWarehouseId');
+      print('Selected Category ID: $_selectedCategoryId');
+      print('Selected Brand ID: $_selectedBrandId');
     } else {
       _barcodeController.text = widget.initialQRCode ?? '';
       _nameController.text = widget.initialName ?? '';
@@ -99,58 +115,58 @@ class _AddItemPageState extends State<AddItemPage> {
 
   Future<void> _saveProduct() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSaving = true; // Show circular progress indicator
+      });
       if (widget.isUpdatingItem) {
         await _updateProduct();
       } else {
         await _postProduct();
       }
+      setState(() {
+        _isSaving = false; // Hide circular progress indicator
+      });
     } else {
       print('Validation errors');
     }
   }
 
   Future<void> _updateProduct() async {
-    final String name = _nameController.text;
-    final double retailPrice = double.parse(_retailPriceController.text);
-    final double salePrice = double.parse(_salePriceController.text);
     final token = await AuthService.getToken();
+    final productId = widget.product?.id;
 
     try {
-      // Get the product ID from the product provider
-      final productId = widget.product?.id;
-
       if (productId != null) {
+        // Validate required fields
+        if (_selectedWarehouseId == null ||
+            _selectedCategoryId == null ||
+            _selectedBrandId == null ||
+            _nameController.text.isEmpty ||
+            _retailPriceController.text.isEmpty ||
+            _salePriceController.text.isEmpty ||
+            _barcodeController.text.isEmpty) {
+          throw Exception('One or more required fields are missing');
+        }
+
         final uri = Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/update/$productId');
+            'https://warehouse.z8tech.one/Backend/public/api/products/update');
         final request = http.MultipartRequest('PUT', uri);
         request.headers['Authorization'] = 'Bearer $token';
 
         // Add text fields
-        request.fields['id'] = productId.toString(); // Include product ID
+        request.fields['id'] = productId.toString();
         request.fields['warehouse_id'] = _selectedWarehouseId.toString();
         request.fields['category_id'] = _selectedCategoryId.toString();
         request.fields['brand_id'] = _selectedBrandId.toString();
-        request.fields['product_name'] = name;
-        request.fields['product_retail_price'] = retailPrice.toString();
-        request.fields['product_sale_price'] = salePrice.toString();
+        request.fields['product_name'] = _nameController.text;
+        request.fields['product_retail_price'] = _retailPriceController.text;
+        request.fields['product_sale_price'] = _salePriceController.text;
+        request.fields['scan_code'] = _barcodeController.text;
 
         // Add image files
-        if (_imageFiles.isNotEmpty) {
-          print('Selected image count: ${_imageFiles.length}');
-          for (var imageFile in _imageFiles) {
-            try {
-              final imageBytes = await imageFile.readAsBytes();
-              final multipartFile = http.MultipartFile.fromBytes(
-                'image[]',
-                imageBytes,
-                filename: imageFile.path.split('/').last,
-              );
-              request.files.add(multipartFile);
-            } catch (e) {
-              print('Error reading image file: $e');
-              // Handle the error here, maybe show a snackbar to the user
-            }
-          }
+        for (var imageFile in _imageFiles) {
+          request.files.add(
+              await http.MultipartFile.fromPath('images[]', imageFile.path));
         }
 
         final streamedResponse = await request.send();
@@ -162,15 +178,16 @@ class _AddItemPageState extends State<AddItemPage> {
         final responseData = jsonDecode(response.body);
 
         if (response.statusCode == 200 && responseData['status'] == true) {
-          // Product updated successfully
+          print('Product information updated successfully');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
           Navigator.pop(context);
         } else {
-          // Product update failed
+          // Product information update failed
           String errorMessage =
               responseData['message'] as String? ?? 'Failed to update product';
+          print('Error updating product: $errorMessage');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
@@ -179,13 +196,56 @@ class _AddItemPageState extends State<AddItemPage> {
         throw Exception('Product ID is null');
       }
     } catch (e) {
-      // Exception occurred
       print('Error updating product: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('An error occurred')),
       );
     }
   }
+
+
+  Future<void> _updateProductImages(int productId, String token) async {
+    final imageUri = Uri.parse(
+        'https://warehouse.z8tech.one/Backend/public/api/update/image');
+    final imageRequest = http.MultipartRequest(
+        'POST', imageUri); // Use POST method for updating images
+    imageRequest.headers['Authorization'] = 'Bearer $token';
+
+    imageRequest.fields['image_ids[]'] = productId.toString();
+
+    for (var imageFile in _imageFiles) {
+      final multipartFile = await http.MultipartFile.fromPath(
+        'images[]',
+        imageFile.path,
+      );
+      imageRequest.files.add(multipartFile);
+    }
+
+    final imageStreamedResponse = await imageRequest.send();
+    final imageResponse = await http.Response.fromStream(imageStreamedResponse);
+
+    print('Image request status code: ${imageResponse.statusCode}');
+    print('Image request body: ${imageResponse.body}');
+
+    final imageResponseData = jsonDecode(imageResponse.body);
+
+    if (imageResponse.statusCode == 200 &&
+        imageResponseData['status'] == true) {
+      // Product images updated successfully
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product images updated successfully')),
+      );
+      Navigator.pop(context);
+    } else {
+      // Product image update failed
+      String errorMessage = imageResponseData['message'] as String? ??
+          'Failed to update product images';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
+
 
   Future<void> _postProduct() async {
     final String barcode = _barcodeController.text;
@@ -209,24 +269,32 @@ class _AddItemPageState extends State<AddItemPage> {
       request.fields['product_sale_price'] = salePrice.toString();
       request.fields['scan_code'] = barcode;
 
-      // Add image files
+      // Add multiple image files
       if (_imageFiles.isNotEmpty) {
         print('Selected image count: ${_imageFiles.length}');
         for (var imageFile in _imageFiles) {
-          try {
-            final imageBytes = await imageFile.readAsBytes();
-            final multipartFile = http.MultipartFile.fromBytes(
-              'image[]',
-              imageBytes,
-              filename: imageFile.path.split('/').last,
-            );
-            request.files.add(multipartFile);
-          } catch (e) {
-            print('Error reading image file: $e');
-            // Handle the error here, maybe show a snackbar to the user
-          }
+          print('Image file path: ${imageFile.path}');
+          // Extract file name from the path
+          String fileName = imageFile.path
+              .split('/')
+              .last; // Assuming path uses '/' separator
+          print('Image file name: $fileName');
+          // Add file name to the request payload
+          request.fields['images[]'] = fileName;
+        }
+        for (var imageFile in _imageFiles) {
+          // Add file to the request
+          final multipartFile =
+              await http.MultipartFile.fromPath('images[]', imageFile.path);
+          request.files.add(multipartFile);
         }
       }
+
+      // Print the request payload
+      print('Request payload:');
+      print('Headers: ${request.headers}');
+      print('Fields: ${request.fields}');
+      print('Files: ${request.files.map((file) => file.field)}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -251,10 +319,10 @@ class _AddItemPageState extends State<AddItemPage> {
         );
       }
     } catch (e) {
-      // Exception occurred
-      print('Error saving product: $e');
+      print('Error uploading images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
+        const SnackBar(
+            content: Text('An error occurred while uploading the images')),
       );
     }
   }
@@ -532,11 +600,23 @@ class _AddItemPageState extends State<AddItemPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.redAccent[200],
-        onPressed: _saveProduct,
-        child: const Icon(Icons.save, color: Colors.white),
-      ),
+      floatingActionButton: _isSaving
+          ? FloatingActionButton(
+              backgroundColor: Colors.redAccent[200],
+              onPressed: null, // Disable button while saving
+              child: const Padding(
+                padding:  EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          : FloatingActionButton(
+              backgroundColor: Colors.redAccent[200],
+              onPressed: _saveProduct,
+              child: const Icon(Icons.save, color: Colors.white),
+            ),
+
     );
   }
 
