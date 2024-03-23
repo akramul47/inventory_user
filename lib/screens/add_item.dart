@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
@@ -15,7 +15,6 @@ class AddItemPage extends StatefulWidget {
     this.initialQRCode,
     this.initialName,
     this.initialDescription,
-    this.initialQuantity,
     this.initialRetailPrice,
     this.initialSalePrice,
     this.initialWarehouseTag,
@@ -26,7 +25,6 @@ class AddItemPage extends StatefulWidget {
   final String? initialQRCode;
   final String? initialName;
   final String? initialDescription;
-  final String? initialQuantity;
   final String? initialRetailPrice;
   final String? initialSalePrice;
   final String? initialWarehouseTag;
@@ -53,7 +51,8 @@ class _AddItemPageState extends State<AddItemPage> {
   Category? _selectedCategory;
   Brand? _selectedBrand;
   bool _isSaving = false;
-  
+  String? _barcodeError;
+
   @override
   void initState() {
     super.initState();
@@ -95,7 +94,6 @@ class _AddItemPageState extends State<AddItemPage> {
       _barcodeController.text = widget.initialQRCode ?? '';
       _nameController.text = widget.initialName ?? '';
       _descriptionController.text = widget.initialDescription ?? '';
-      _quantityController.text = widget.initialQuantity ?? '';
       _retailPriceController.text = widget.initialRetailPrice ?? '';
       _salePriceController.text = widget.initialSalePrice ?? '';
       _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
@@ -103,14 +101,28 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _getImage(ImageSource source) async {
-    final pickedFiles = await ImagePicker().pickMultiImage();
+    List<XFile>? pickedFiles;
 
-    if (pickedFiles != null) {
-      setState(() {
+    if (source == ImageSource.camera) {
+      final pickedFile = await ImagePicker().pickImage(source: source);
+      if (pickedFile != null) {
+        pickedFiles = [pickedFile];
+      }
+    } else {
+      pickedFiles = await ImagePicker().pickMultiImage();
+    }
+
+    setState(() {
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
         _imageFiles =
             pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
-      });
-    }
+      } else {
+        // Show a snackbar if no image is selected
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No image selected')),
+        );
+      }
+    });
   }
 
   Future<void> _saveProduct() async {
@@ -118,11 +130,13 @@ class _AddItemPageState extends State<AddItemPage> {
       setState(() {
         _isSaving = true; // Show circular progress indicator
       });
+
       if (widget.isUpdatingItem) {
         await _updateProduct();
       } else {
-        await _postProduct();
+        await _postProduct(); // Assuming _postProduct handles product creation
       }
+
       setState(() {
         _isSaving = false; // Hide circular progress indicator
       });
@@ -131,11 +145,12 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
+// Function for updating product information
   Future<void> _updateProduct() async {
-    final token = await AuthService.getToken();
-    final productId = widget.product?.id;
-
     try {
+      final token = await AuthService.getToken();
+      final productId = widget.product?.id;
+
       if (productId != null) {
         // Validate required fields
         if (_selectedWarehouseId == null ||
@@ -148,48 +163,65 @@ class _AddItemPageState extends State<AddItemPage> {
           throw Exception('One or more required fields are missing');
         }
 
-        final uri = Uri.parse(
+        Uri uri = Uri.parse(
             'https://warehouse.z8tech.one/Backend/public/api/products/update');
-        final request = http.MultipartRequest('PUT', uri);
-        request.headers['Authorization'] = 'Bearer $token';
+        // Construct query parameters for the PUT request
+        Map<String, String> queryParameters = {
+          'id': productId.toString(),
+          'warehouse_id': _selectedWarehouseId.toString(),
+          'category_id': _selectedCategoryId.toString(),
+          'brand_id': _selectedBrandId.toString(),
+          'product_name': _nameController.text,
+          'product_retail_price': _retailPriceController.text,
+          'product_sale_price': _salePriceController.text,
+          'scan_code': _barcodeController.text
+        };
+        uri = uri.replace(queryParameters: queryParameters);
 
-        // Add text fields
-        request.fields['id'] = productId.toString();
-        request.fields['warehouse_id'] = _selectedWarehouseId.toString();
-        request.fields['category_id'] = _selectedCategoryId.toString();
-        request.fields['brand_id'] = _selectedBrandId.toString();
-        request.fields['product_name'] = _nameController.text;
-        request.fields['product_retail_price'] = _retailPriceController.text;
-        request.fields['product_sale_price'] = _salePriceController.text;
-        request.fields['scan_code'] = _barcodeController.text;
-
-        // Add image files
-        for (var imageFile in _imageFiles) {
-          request.files.add(
-              await http.MultipartFile.fromPath('images[]', imageFile.path));
-        }
-
-        final streamedResponse = await request.send();
-        final response = await http.Response.fromStream(streamedResponse);
+        http.Response response = await http.put(
+          uri,
+          headers: {'Authorization': 'Bearer $token'},
+        );
 
         print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Raw response body: ${response.body}');
 
-        final responseData = jsonDecode(response.body);
+        if (response.statusCode == 200) {
+          // Check if response body is not empty
+          if (response.body.isNotEmpty) {
+            final responseData = jsonDecode(response.body);
+            // Check if status field exists and is true
+            if (responseData['status'] != null &&
+                responseData['status'] == true) {
+              print('Product information updated successfully');
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Product updated successfully')),
+              );
 
-        if (response.statusCode == 200 && responseData['status'] == true) {
-          print('Product information updated successfully');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Product updated successfully')),
-          );
-          Navigator.pop(context);
+              // Update product images if there are any
+              if (_imageFiles.isNotEmpty) {
+                await _updateProductImages(productId, token);
+              } else {
+                Navigator.pop(context);
+              }
+            } else {
+              // Product information update failed
+              String errorMessage = responseData['message'] as String? ??
+                  'Failed to update product';
+              print('Error updating product: $errorMessage');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(errorMessage)),
+              );
+            }
+          } else {
+            // Handle empty response body
+            throw Exception('Empty response body');
+          }
         } else {
-          // Product information update failed
-          String errorMessage =
-              responseData['message'] as String? ?? 'Failed to update product';
-          print('Error updating product: $errorMessage');
+          // Handle other error responses
+          print('Error updating product: ${response.body}');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMessage)),
+            SnackBar(content: Text('Error: ${response.body}')),
           );
         }
       } else {
@@ -203,49 +235,51 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-
   Future<void> _updateProductImages(int productId, String token) async {
-    final imageUri = Uri.parse(
-        'https://warehouse.z8tech.one/Backend/public/api/update/image');
-    final imageRequest = http.MultipartRequest(
-        'POST', imageUri); // Use POST method for updating images
-    imageRequest.headers['Authorization'] = 'Bearer $token';
-
-    imageRequest.fields['image_ids[]'] = productId.toString();
+    final uri = Uri.parse(
+        'https://warehouse.z8tech.one/Backend/public/api/update/image/$productId');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
 
     for (var imageFile in _imageFiles) {
       final multipartFile = await http.MultipartFile.fromPath(
-        'images[]',
+        'images[]', // Use the correct field name expected by the API
         imageFile.path,
       );
-      imageRequest.files.add(multipartFile);
+      request.files.add(multipartFile);
     }
 
-    final imageStreamedResponse = await imageRequest.send();
-    final imageResponse = await http.Response.fromStream(imageStreamedResponse);
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
-    print('Image request status code: ${imageResponse.statusCode}');
-    print('Image request body: ${imageResponse.body}');
+      print('Image request status code: ${response.statusCode}');
+      print('Image request body: ${response.body}');
 
-    final imageResponseData = jsonDecode(imageResponse.body);
+      final imageResponseData = jsonDecode(response.body);
 
-    if (imageResponse.statusCode == 200 &&
-        imageResponseData['status'] == true) {
-      // Product images updated successfully
+      if (response.statusCode == 200 && imageResponseData['status'] == true) {
+        // Product images updated successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product images updated successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        // Product image update failed
+        String errorMessage = imageResponseData['message'] as String? ??
+            'Failed to update product images';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      print('Error updating product images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product images updated successfully')),
-      );
-      Navigator.pop(context);
-    } else {
-      // Product image update failed
-      String errorMessage = imageResponseData['message'] as String? ??
-          'Failed to update product images';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage)),
+        const SnackBar(
+            content: Text('An error occurred while uploading the images')),
       );
     }
   }
-
 
   Future<void> _postProduct() async {
     final String barcode = _barcodeController.text;
@@ -436,7 +470,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   height: 16,
                 ),
                 // Show picked images
-                if (_imageFiles != null && _imageFiles!.isNotEmpty)
+                if (_imageFiles.isNotEmpty)
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -446,23 +480,37 @@ class _AddItemPageState extends State<AddItemPage> {
                       crossAxisSpacing: 8.0,
                       mainAxisSpacing: 8.0,
                     ),
-                    itemCount: _imageFiles!.length,
+                    itemCount: _imageFiles.length,
                     itemBuilder: (context, index) {
-                      return Image.file(File(_imageFiles![index].path));
+                      return Image.file(File(_imageFiles[index].path));
                     },
                   ),
                 // Replace with your Image Picker implementation
                 // Add Image Picker Functionality
                 // Add Image Picker Functionality
                 const SizedBox(height: 16.0),
+
                 TextFormField(
                   controller: _barcodeController,
                   decoration: InputDecoration(
                     labelText: 'QR Code/Barcode Value',
+                    errorText: _barcodeError,
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.qr_code),
-                      onPressed: () {
-                        // Implement Barcode Scanner
+                      onPressed: () async {
+                        try {
+                          var result = await BarcodeScanner.scan();
+                          String? scannedCode = result.rawContent;
+                          setState(() {
+                            _barcodeController.text = scannedCode;
+                            _barcodeError = null; // Clear previous error if any
+                          });
+                        } catch (e) {
+                          print('Error scanning barcode: $e');
+                          setState(() {
+                            _barcodeError = 'Error scanning barcode';
+                          });
+                        }
                       },
                     ),
                   ),
@@ -492,7 +540,8 @@ class _AddItemPageState extends State<AddItemPage> {
                     }
                     return null;
                   },
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -506,7 +555,8 @@ class _AddItemPageState extends State<AddItemPage> {
                     }
                     return null;
                   },
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                 ),
                 const SizedBox(height: 16.0),
                 DropdownButtonFormField<Warehouse>(
@@ -578,23 +628,24 @@ class _AddItemPageState extends State<AddItemPage> {
                   },
                 ),
                 const SizedBox(height: 16.0),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(15.0),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Show delete confirmation dialog
-                        _showDeleteConfirmationDialog(context);
-                      },
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent[200],
-                        foregroundColor: Colors.white,
+                if (widget.isUpdatingItem)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          // Show delete confirmation dialog
+                          _showDeleteConfirmationDialog(context);
+                        },
+                        icon: const Icon(Icons.delete),
+                        label: const Text('Delete'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent[200],
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ],
@@ -605,7 +656,7 @@ class _AddItemPageState extends State<AddItemPage> {
               backgroundColor: Colors.redAccent[200],
               onPressed: null, // Disable button while saving
               child: const Padding(
-                padding:  EdgeInsets.all(8.0),
+                padding: EdgeInsets.all(17.0),
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
@@ -616,35 +667,32 @@ class _AddItemPageState extends State<AddItemPage> {
               onPressed: _saveProduct,
               child: const Icon(Icons.save, color: Colors.white),
             ),
-
     );
   }
 
   void _showImagePickerDialog(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Select Image Source'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: Text('Camera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _getImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                title: Text('Gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _getImage(ImageSource.gallery);
-                },
-              ),
-            ],
-          ),
+        return Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                _getImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _getImage(ImageSource.gallery);
+              },
+            ),
+          ],
         );
       },
     );
@@ -655,21 +703,21 @@ class _AddItemPageState extends State<AddItemPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Item'),
-          content: Text('Are you sure you want to delete this item?'),
+          title: const Text('Delete Item'),
+          content: const Text('Are you sure you want to delete this item?'),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(false); // Dismiss the dialog
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
                 Navigator.of(context).pop(true); // Dismiss the dialog
                 await _deleteProduct(); // Call delete method
               },
-              child: Text('Delete'),
+              child: const Text('Delete'),
             ),
           ],
         );

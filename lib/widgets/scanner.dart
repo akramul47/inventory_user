@@ -7,16 +7,14 @@ class BarcodeHelper {
     try {
       var result = await BarcodeScanner.scan();
       String? scannedCode = result.rawContent;
-      if (scannedCode != null) {
-        // Navigate to the AddItemPage, passing the scanned code as initialQRCode
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AddItemPage(initialQRCode: scannedCode),
-          ),
-        );
-      }
-    } on Exception catch (e) {
+      // Navigate to the AddItemPage, passing the scanned code as initialQRCode
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddItemPage(initialQRCode: scannedCode),
+        ),
+      );
+        } on Exception catch (e) {
       print('Error scanning barcode: $e');
     }
   }

@@ -22,7 +22,6 @@ class MyCardWidget extends StatelessWidget {
 
         // Replace the following placeholders with actual data
         String name = product.name;
-        String quantity = 'Qty: ${product.quantity}';
         String createDate =
             'Create Date: ${product.createdAt.toLocal().toString().split(' ')[0]}';
 
@@ -35,7 +34,6 @@ class MyCardWidget extends StatelessWidget {
                   initialQRCode: product.barcode,
                   initialName: product.name,
                   initialDescription: product.description,
-                  initialQuantity: product.quantity.toString(),
                   initialWarehouseTag: product.warehouseTag,
                   product: product, // Pass the product object for updating
                   isUpdatingItem: true, // Set the flag for updating
@@ -44,7 +42,7 @@ class MyCardWidget extends StatelessWidget {
             );
           },
           child: Card(
-            margin: const EdgeInsets.all(8.0),
+            margin: const EdgeInsets.all(5.0),
             child: ListTile(
               leading: CircleAvatar(
                 backgroundColor: Colors.transparent,
@@ -55,8 +53,8 @@ class MyCardWidget extends StatelessWidget {
                   imageBuilder: (context, imageProvider) => CircleAvatar(
                     backgroundImage: imageProvider,
                   ),
-                  placeholder: (context, url) =>
-                      const CircularProgressIndicator(),
+                  // placeholder: (context, url) =>
+                  //     const CircularProgressIndicator(),
                   errorWidget: (context, url, error) => const Icon(
                     Icons.error,
                     color: Colors.red,
@@ -67,13 +65,7 @@ class MyCardWidget extends StatelessWidget {
                 name,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(quantity),
-                  Text(createDate),
-                ],
-              ),
+              subtitle: Text(createDate),
               trailing:
                   const Icon(Icons.star), // Replace with your star icon logic
             ),

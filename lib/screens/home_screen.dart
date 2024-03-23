@@ -78,11 +78,7 @@ class _MyHomePageState extends State<MyHomePage>
           iconTheme: const IconThemeData(color: Colors.white),
           toolbarHeight: 55,
           backgroundColor: Colors.redAccent[200],
-          title: Text(
-            widget.title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.white),
-          ),
+          title: Image.asset('assets/logo.jpeg'),
           actions: [
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -232,11 +228,11 @@ class _ItemsTabContentState extends State<_ItemsTabContent> {
 
         // If products is empty or still loading, show circular progress indicator
         if (_isLoading || products.isEmpty) {
-          return CardSkeleton();
+          return const CardSkeleton();
         }
 
         // If products is not empty, show the list of items
-        return MyCardWidget();
+        return const MyCardWidget();
       },
     );
   }
