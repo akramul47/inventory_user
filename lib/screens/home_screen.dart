@@ -22,6 +22,7 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -31,13 +32,6 @@ class _MyHomePageState extends State<MyHomePage>
     );
     // Fetch data on initialization
     _fetchData();
-
-    // Simulating a delay of 2 seconds before showing the card items
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isLoading = false;
-      });
-    });
   }
 
   Future<void> _fetchData() async {
@@ -49,6 +43,9 @@ class _MyHomePageState extends State<MyHomePage>
       // Fetch products and warehouse data
       await productProvider.fetchProducts(forceRefresh: true);
       await productProvider.fetchWarehouseCategoryBrand(token);
+      setState(() {
+        _isLoading = false; // Set isLoading to false when data is loaded
+      });
     } catch (e) {
       print('Error fetching data: $e');
       // Handle error, e.g., show a snackbar
@@ -133,7 +130,7 @@ class _MyHomePageState extends State<MyHomePage>
         drawer: AppDrawer(navigatorKey: GlobalKey<NavigatorState>()),
         body: TabBarView(
           children: [
-            _ItemsTabContent(),
+            _ItemsTabContent(isLoading: _isLoading),
             WarehouseListWidget(),
           ],
         ),
@@ -199,26 +196,10 @@ class _MyHomePageState extends State<MyHomePage>
   }
 }
 
-class _ItemsTabContent extends StatefulWidget {
-  const _ItemsTabContent({Key? key}) : super(key: key);
+class _ItemsTabContent extends StatelessWidget {
+  const _ItemsTabContent({Key? key, required this.isLoading}) : super(key: key);
 
-  @override
-  State<_ItemsTabContent> createState() => _ItemsTabContentState();
-}
-
-class _ItemsTabContentState extends State<_ItemsTabContent> {
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // Simulating a delay of 2 seconds before showing the card items
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        _isLoading = false;
-      });
-    });
-  }
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -226,8 +207,8 @@ class _ItemsTabContentState extends State<_ItemsTabContent> {
       builder: (context, productProvider, _) {
         final products = productProvider.products;
 
-        // If products is empty or still loading, show circular progress indicator
-        if (_isLoading || products.isEmpty) {
+        // If isLoading is true or products is empty, show circular progress indicator
+        if (isLoading || products.isEmpty) {
           return const CardSkeleton();
         }
 

@@ -265,26 +265,150 @@ class ProductProvider extends ChangeNotifier {
       throw Exception('Failed to fetch brands');
     }
   }
+  Future<void> loadCategoriesFromLocal() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String>? categoriesJsonStrings =
+          prefs.getStringList('categories');
+      if (categoriesJsonStrings != null) {
+        _categories = categoriesJsonStrings
+            .map((jsonString) => Category.fromJson(jsonDecode(jsonString)))
+            .toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading categories from local storage: $e');
+      throw Exception('Failed to load categories from local storage');
+    }
+  }
+
+  Future<void> loadBrandsFromLocal() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String>? brandsJsonStrings = prefs.getStringList('brands');
+      if (brandsJsonStrings != null) {
+        _brands = brandsJsonStrings
+            .map((jsonString) => Brand.fromJson(jsonDecode(jsonString)))
+            .toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading brands from local storage: $e');
+      throw Exception('Failed to load brands from local storage');
+    }
+  }
+
+  Future<void> saveCategoriesToLocal(List<Category> categories) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> categoriesJsonStrings =
+          categories.map((category) => jsonEncode(category.toJson())).toList();
+      await prefs.setStringList('categories', categoriesJsonStrings);
+    } catch (e) {
+      print('Error updating local storage: $e');
+      throw Exception('Failed to update local storage');
+    }
+  }
+
+  Future<void> saveBrandsToLocal(List<Brand> brands) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final List<String> brandsJsonStrings =
+          brands.map((brand) => jsonEncode(brand.toJson())).toList();
+      await prefs.setStringList('brands', brandsJsonStrings);
+    } catch (e) {
+      print('Error updating local storage: $e');
+      throw Exception('Failed to update local storage');
+    }
+  }
 
   Future<void> fetchWarehouseCategoryBrand(String token) async {
     try {
-      // Fetch warehouses
+      // Load warehouses, categories, and brands from local storage
+      await loadWarehousesFromLocal();
+      await loadCategoriesFromLocal();
+      await loadBrandsFromLocal();
+
+      // Fetch warehouses, categories, and brands from API
       final List<Warehouse> warehouses = await fetchWarehouses();
-      _warehouses = warehouses;
-
-      // Fetch categories
       final List<Category> categories = await fetchCategories(token);
-      _categories = categories;
-
-      // Fetch brands
       final List<Brand> brands = await fetchBrands(token);
-      _brands = brands;
+
+      // Compare fetched data with local data
+      final warehousesChanged = _compareWarehouses(warehouses);
+      final categoriesChanged = _compareCategories(categories);
+      final brandsChanged = _compareBrands(brands);
+
+      // Update local data if necessary
+      if (warehousesChanged) {
+        await saveWarehousesToLocal(warehouses);
+        _warehouses = warehouses;
+      }
+      if (categoriesChanged) {
+        await saveCategoriesToLocal(categories);
+        _categories = categories;
+      }
+      if (brandsChanged) {
+        await saveBrandsToLocal(brands);
+        _brands = brands;
+      }
 
       notifyListeners();
     } catch (e) {
       print('Error fetching warehouse, category, and brand: $e');
       throw Exception('Failed to fetch warehouse, category, and brand');
     }
+  }
+
+  // Compare local warehouses with fetched warehouses
+  bool _compareWarehouses(List<Warehouse> fetchedWarehouses) {
+    // Compare lengths
+    if (_warehouses.length != fetchedWarehouses.length) {
+      return true;
+    }
+
+    // Compare each warehouse
+    for (int i = 0; i < _warehouses.length; i++) {
+      if (_warehouses[i] != fetchedWarehouses[i]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Compare local categories with fetched categories
+  bool _compareCategories(List<Category> fetchedCategories) {
+    // Compare lengths
+    if (_categories.length != fetchedCategories.length) {
+      return true;
+    }
+
+    // Compare each category
+    for (int i = 0; i < _categories.length; i++) {
+      if (_categories[i] != fetchedCategories[i]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Compare local brands with fetched brands
+  bool _compareBrands(List<Brand> fetchedBrands) {
+    // Compare lengths
+    if (_brands.length != fetchedBrands.length) {
+      return true;
+    }
+
+    // Compare each brand
+    for (int i = 0; i < _brands.length; i++) {
+      if (_brands[i] != fetchedBrands[i]) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Method to add a new product

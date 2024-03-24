@@ -134,7 +134,7 @@ class _AddItemPageState extends State<AddItemPage> {
       if (widget.isUpdatingItem) {
         await _updateProduct();
       } else {
-        await _postProduct(); // Assuming _postProduct handles product creation
+        await _postProduct();
       }
 
       setState(() {
@@ -145,83 +145,55 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-// Function for updating product information
+  // Function for updating product information
   Future<void> _updateProduct() async {
+    print('Entering _updateProduct');
+
+    final token = await AuthService.getToken();
+    final productId = widget.product?.id;
+
     try {
-      final token = await AuthService.getToken();
-      final productId = widget.product?.id;
-
       if (productId != null) {
-        // Validate required fields
-        if (_selectedWarehouseId == null ||
-            _selectedCategoryId == null ||
-            _selectedBrandId == null ||
-            _nameController.text.isEmpty ||
-            _retailPriceController.text.isEmpty ||
-            _salePriceController.text.isEmpty ||
-            _barcodeController.text.isEmpty) {
-          throw Exception('One or more required fields are missing');
-        }
+        final uri = Uri.parse(
+            'https://warehouse.z8tech.one/Backend/public/api/products/update?id=$productId');
+        final request =
+            http.MultipartRequest('PUT', uri); // Change request method to PUT
+        request.headers['Authorization'] = 'Bearer $token';
 
-        Uri uri = Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/update');
-        // Construct query parameters for the PUT request
-        Map<String, String> queryParameters = {
-          'id': productId.toString(),
-          'warehouse_id': _selectedWarehouseId.toString(),
-          'category_id': _selectedCategoryId.toString(),
-          'brand_id': _selectedBrandId.toString(),
-          'product_name': _nameController.text,
-          'product_retail_price': _retailPriceController.text,
-          'product_sale_price': _salePriceController.text,
-          'scan_code': _barcodeController.text
-        };
-        uri = uri.replace(queryParameters: queryParameters);
+        // Add fields to the request body
+        request.fields['warehouse_id'] = _selectedWarehouseId.toString();
+        request.fields['category_id'] = _selectedCategoryId.toString();
+        request.fields['product_name'] = _nameController.text.trim();
+        request.fields['product_retail_price'] =
+            _retailPriceController.text.trim();
+        request.fields['product_sale_price'] = _salePriceController.text.trim();
+        request.fields['scan_code'] = _barcodeController.text.trim();
 
-        http.Response response = await http.put(
-          uri,
-          headers: {'Authorization': 'Bearer $token'},
-        );
+        print('Request Headers: ${request.headers}');
+        print('Request Fields: ${request.fields}');
+
+        final streamedResponse = await request.send();
+        final response = await http.Response.fromStream(streamedResponse);
 
         print('Response status code: ${response.statusCode}');
-        print('Raw response body: ${response.body}');
+        print('Response body: ${response.body}');
 
-        if (response.statusCode == 200) {
-          // Check if response body is not empty
-          if (response.body.isNotEmpty) {
-            final responseData = jsonDecode(response.body);
-            // Check if status field exists and is true
-            if (responseData['status'] != null &&
-                responseData['status'] == true) {
-              print('Product information updated successfully');
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Product updated successfully')),
-              );
+        final responseData = jsonDecode(response.body);
 
-              // Update product images if there are any
-              if (_imageFiles.isNotEmpty) {
-                await _updateProductImages(productId, token);
-              } else {
-                Navigator.pop(context);
-              }
-            } else {
-              // Product information update failed
-              String errorMessage = responseData['message'] as String? ??
-                  'Failed to update product';
-              print('Error updating product: $errorMessage');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(errorMessage)),
-              );
-            }
-          } else {
-            // Handle empty response body
-            throw Exception('Empty response body');
-          }
-        } else {
-          // Handle other error responses
-          print('Error updating product: ${response.body}');
+        if (response.statusCode == 200 && responseData['status'] == true) {
+          // Product information updated successfully
+          print('Product information updated successfully');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${response.body}')),
+            const SnackBar(content: Text('Product updated successfully')),
+          );
+          // Optionally, you can navigate back or perform any other action here
+        } else {
+          // Product information update failed
+          String errorMessage =
+              responseData['message'] as String? ?? 'Failed to update product';
+          print('Error updating product: $errorMessage');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMessage)),
           );
         }
       } else {
@@ -235,53 +207,54 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-  Future<void> _updateProductImages(int productId, String token) async {
-    final uri = Uri.parse(
-        'https://warehouse.z8tech.one/Backend/public/api/update/image/$productId');
-    final request = http.MultipartRequest('POST', uri);
-    request.headers['Authorization'] = 'Bearer $token';
+  // Future<void> _updateProductImages(int productId, String token) async {
+  //   final uri = Uri.parse(
+  //       'https://warehouse.z8tech.one/Backend/public/api/update/image/$productId');
+  //   final request = http.MultipartRequest('POST', uri);
+  //   request.headers['Authorization'] = 'Bearer $token';
 
-    for (var imageFile in _imageFiles) {
-      final multipartFile = await http.MultipartFile.fromPath(
-        'images[]', // Use the correct field name expected by the API
-        imageFile.path,
-      );
-      request.files.add(multipartFile);
-    }
+  //   for (var imageFile in _imageFiles) {
+  //     final multipartFile = await http.MultipartFile.fromPath(
+  //       'images[]', // Use the correct field name expected by the API
+  //       imageFile.path,
+  //     );
+  //     request.files.add(multipartFile);
+  //   }
 
-    try {
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+  //   try {
+  //     final streamedResponse = await request.send();
+  //     final response = await http.Response.fromStream(streamedResponse);
 
-      print('Image request status code: ${response.statusCode}');
-      print('Image request body: ${response.body}');
+  //     print('Image request status code: ${response.statusCode}');
+  //     print('Image request body: ${response.body}');
 
-      final imageResponseData = jsonDecode(response.body);
+  //     final imageResponseData = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && imageResponseData['status'] == true) {
-        // Product images updated successfully
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product images updated successfully')),
-        );
-        Navigator.pop(context);
-      } else {
-        // Product image update failed
-        String errorMessage = imageResponseData['message'] as String? ??
-            'Failed to update product images';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
-      }
-    } catch (e) {
-      print('Error updating product images: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('An error occurred while uploading the images')),
-      );
-    }
-  }
+  //     if (response.statusCode == 200 && imageResponseData['status'] == true) {
+  //       // Product images updated successfully
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Product images updated successfully')),
+  //       );
+  //       Navigator.pop(context);
+  //     } else {
+  //       // Product image update failed
+  //       String errorMessage = imageResponseData['message'] as String? ??
+  //           'Failed to update product images';
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text(errorMessage)),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error updating product images: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //           content: Text('An error occurred while uploading the images')),
+  //     );
+  //   }
+  // }
 
   Future<void> _postProduct() async {
+    print('Entering _postProduct');
     final String barcode = _barcodeController.text;
     final String name = _nameController.text;
     final double retailPrice = double.parse(_retailPriceController.text);
