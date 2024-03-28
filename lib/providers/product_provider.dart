@@ -37,58 +37,7 @@ class ProductProvider extends ChangeNotifier {
       print('Error during logout: $e');
     }
   }
-
-  // Future<List<Product>> fetchProducts({bool forceRefresh = false}) async {
-  //   try {
-  //     if (!forceRefresh && _products.isNotEmpty) {
-  //       // If forceRefresh is false and products are already loaded, return without fetching again
-  //       return _products;
-  //     }
-
-  //     final token = await AuthService.getToken();
-  //     final response = await http.get(
-  //       Uri.parse('$baseUrl/products'),
-  //       headers: {
-  //         'Authorization': 'Bearer $token',
-  //       },
-  //     );
-
-  //     print('Response body: ${response.body}');
-
-  //     if (response.statusCode == 200) {
-  //       final List<dynamic> responseData =
-  //           jsonDecode(response.body)['products']['data'];
-  //       _products = responseData.map((data) {
-  //         final product = Product.fromJson(data);
-  //         return product;
-  //       }).toList();
-
-  //       await saveProductsToLocal(_products);
-  //       notifyListeners();
-  //       return _products;
-  //      } else {
-  //       // Check if the response indicates an invalid token
-  //       final Map<String, dynamic> responseData = jsonDecode(response.body);
-  //       if (responseData['message'] == 'Token has expired') {
-  //         // Token has expired, log out the user and show a snackbar
-  //         await logoutUser();
-  //         ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-  //           const SnackBar(
-  //             content: Text('Logged out. Token expired!'),
-  //           ),
-  //         );
-  //       } else {
-  //         throw Exception('Failed to fetch products');
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print('Error fetching products: $e');
-  //     throw Exception('Failed to fetch products');
-  //   }
-  //   return [];
-  // }
-
-  // Method to fetch products by page number
+  
   Future<List<Product>> fetchProductsByPage(int page) async {
     try {
       final token = await AuthService.getToken();
@@ -109,12 +58,25 @@ class ProductProvider extends ChangeNotifier {
 
         return nextPageProducts;
       } else {
-        throw Exception('Failed to fetch products');
+        // Check if the response indicates an invalid token
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData['message'] == 'Token has expired') {
+          // Token has expired, log out the user and show a snackbar
+          await logoutUser();
+          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out. Token expired!'),
+            ),
+          );
+        } else {
+          throw Exception('Failed to fetch products');
+        }
       }
     } catch (e) {
       print('Error fetching products: $e');
       throw Exception('Failed to fetch products');
     }
+    return [];
   }
 
   // Method to load more products
@@ -312,6 +274,7 @@ class ProductProvider extends ChangeNotifier {
       throw Exception('Failed to fetch brands');
     }
   }
+
   Future<void> loadCategoriesFromLocal() async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
