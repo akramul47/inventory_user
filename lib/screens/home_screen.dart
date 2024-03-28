@@ -41,7 +41,7 @@ class _MyHomePageState extends State<MyHomePage>
       final token = await AuthService.getToken();
 
       // Fetch products and warehouse data
-      await productProvider.fetchProducts(forceRefresh: true);
+      await productProvider.loadMoreProducts();
       await productProvider.fetchWarehouseCategoryBrand(token);
       setState(() {
         _isLoading = false; // Set isLoading to false when data is loaded
