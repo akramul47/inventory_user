@@ -5,6 +5,7 @@ import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/widgets/app_drawer.dart';
 import 'package:inventory_user/widgets/inventory_card.dart';
 import 'package:inventory_user/widgets/scanner.dart';
+import 'package:inventory_user/widgets/search_barcode.dart';
 import 'package:inventory_user/widgets/shimmer.dart';
 import 'package:inventory_user/widgets/warehouse_list.dart';
 import 'package:provider/provider.dart';
@@ -96,7 +97,9 @@ class _MyHomePageState extends State<MyHomePage>
                     color: Colors.white,
                   ),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      await SearchFromBarcode.scanBarcodeAndNavigate(context);
+                    },
                     icon: const Icon(Icons.search_outlined),
                     iconSize: 30,
                     color: Colors.white,
