@@ -76,7 +76,10 @@ class _MyHomePageState extends State<MyHomePage>
           iconTheme: const IconThemeData(color: Colors.white),
           toolbarHeight: 55,
           backgroundColor: Colors.redAccent[200],
-          title: Image.asset('assets/logo.jpeg'),
+          title: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Image.asset('assets/logo.jpeg'),
+          ),
           actions: [
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -90,12 +93,12 @@ class _MyHomePageState extends State<MyHomePage>
                     iconSize: 30,
                     color: Colors.white,
                   ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.sort_by_alpha_outlined),
-                    iconSize: 30,
-                    color: Colors.white,
-                  ),
+                  // IconButton(
+                  //   onPressed: () {},
+                  //   icon: const Icon(Icons.sort_by_alpha_outlined),
+                  //   iconSize: 30,
+                  //   color: Colors.white,
+                  // ),
                   IconButton(
                     onPressed: () async {
                       await SearchFromBarcode.scanBarcodeAndNavigate(context);

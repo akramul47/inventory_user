@@ -28,14 +28,14 @@ class SearchFromBarcode {
             false, // Prevent dialog dismissal by tapping outside
         builder: (BuildContext context) {
           return AlertDialog(
-            content: Column(
+            content: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 const CircularProgressIndicator(
-                  strokeWidth: 4,
+                  strokeWidth: 3,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
                 ),
-                const SizedBox(height: 13),
+                const SizedBox(width: 15),
                 Text(
                   'Loading data...',
                   style: TextStyle(
@@ -119,6 +119,4 @@ class SearchFromBarcode {
       }
     }
   }
-
-
 }
