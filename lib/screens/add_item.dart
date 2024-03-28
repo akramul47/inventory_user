@@ -136,7 +136,7 @@ class _AddItemPageState extends State<AddItemPage> {
       } else {
         await _postProduct();
       }
-
+  
       setState(() {
         _isSaving = false; // Hide circular progress indicator
       });
@@ -155,9 +155,9 @@ class _AddItemPageState extends State<AddItemPage> {
     try {
       if (productId != null) {
         final uri = Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/update?id=$productId');
-        final request =
-            http.MultipartRequest('PUT', uri); // Change request method to PUT
+            'https://warehouse.z8tech.one/Backend/public/api/products/app/update/$productId');
+        final request = http.MultipartRequest('POST', uri);
+        request.fields['_method'] = 'PUT'; // Set the request method to PUT
         request.headers['Authorization'] = 'Bearer $token';
 
         // Add fields to the request body
@@ -186,7 +186,15 @@ class _AddItemPageState extends State<AddItemPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
-          // Optionally, you can navigate back or perform any other action here
+
+          print('_imageFiles length: ${_imageFiles.length}');
+          if (_imageFiles.isNotEmpty) {
+            print('Calling _updateProductImages');
+            await _updateProductImages(productId, token);
+          } else {
+            print('No new images selected or product update failed');
+          }
+
         } else {
           // Product information update failed
           String errorMessage =
@@ -207,51 +215,72 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
-  // Future<void> _updateProductImages(int productId, String token) async {
-  //   final uri = Uri.parse(
-  //       'https://warehouse.z8tech.one/Backend/public/api/update/image/$productId');
-  //   final request = http.MultipartRequest('POST', uri);
-  //   request.headers['Authorization'] = 'Bearer $token';
+  Future<void> _updateProductImages(int productId, String token) async {
+    print('Entering _updateProductImages');
 
-  //   for (var imageFile in _imageFiles) {
-  //     final multipartFile = await http.MultipartFile.fromPath(
-  //       'images[]', // Use the correct field name expected by the API
-  //       imageFile.path,
-  //     );
-  //     request.files.add(multipartFile);
-  //   }
+    final uri = Uri.parse(
+        'https://warehouse.z8tech.one/Backend/public/products/update/image/$productId');
+    final request = http.MultipartRequest('POST', uri);
+    request.fields['_method'] = 'PUT'; // Set the request method to PUT
+    request.headers['Authorization'] = 'Bearer $token';
 
-  //   try {
-  //     final streamedResponse = await request.send();
-  //     final response = await http.Response.fromStream(streamedResponse);
+    try {
+      // Handle image files
+      if (_imageFiles.isNotEmpty) {
+        print('Selected image count: ${_imageFiles.length}');
+        for (var imageFile in _imageFiles) {
+          print('Image file path: ${imageFile.path}');
+          // Extract file name from the path
+          String fileName = imageFile.path
+              .split('/')
+              .last; // Assuming path uses '/' separator
+          print('Image file name: $fileName');
+          // Add file name to the request payload
+          request.fields['images[]'] = fileName;
+          // Add file to the request
+          final multipartFile =
+              await http.MultipartFile.fromPath('images[]', imageFile.path);
+          request.files.add(multipartFile);
+        }
+      } else {
+        print('No new images selected');
+      }
 
-  //     print('Image request status code: ${response.statusCode}');
-  //     print('Image request body: ${response.body}');
+      // Print the request payload
+      print('Request Headers: ${request.headers}');
+      print('Request Fields: ${request.fields}');
+      print('Request Files: ${request.files.map((file) => file.field)}');
 
-  //     final imageResponseData = jsonDecode(response.body);
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
 
-  //     if (response.statusCode == 200 && imageResponseData['status'] == true) {
-  //       // Product images updated successfully
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Product images updated successfully')),
-  //       );
-  //       Navigator.pop(context);
-  //     } else {
-  //       // Product image update failed
-  //       String errorMessage = imageResponseData['message'] as String? ??
-  //           'Failed to update product images';
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text(errorMessage)),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     print('Error updating product images: $e');
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(
-  //           content: Text('An error occurred while uploading the images')),
-  //     );
-  //   }
-  // }
+      print('Image request status code: ${response.statusCode}');
+      print('Image request body: ${response.body}');
+
+      final imageResponseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && imageResponseData['status'] == true) {
+        // Product images updated successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product images updated successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        // Product image update failed
+        String errorMessage = imageResponseData['message'] as String? ??
+            'Failed to update product images';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      print('Error updating product images: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('An error occurred while uploading the images')),
+      );
+    }
+  }
 
   Future<void> _postProduct() async {
     print('Entering _postProduct');
