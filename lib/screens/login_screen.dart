@@ -38,7 +38,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login failed. Please try again.'),
-          backgroundColor: Colors.red,
+          backgroundColor: Pallete.borderColor,
         ),
       );
     } finally {
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
               Padding(
                 padding: const EdgeInsets.all(10.0),
                 child: Image.asset(
-                  'assets/logo.jpeg', // logo path
+                  'assets/logo.jpeg', height: 70, width: 400, // logo path
                 ),
               ),
               const SizedBox(
@@ -112,6 +112,6 @@ class Pallete {
   static const Color gradient1 = Color.fromRGBO(187, 63, 221, 1);
   static const Color gradient2 = Color.fromRGBO(251, 109, 169, 1);
   static const Color gradient3 = Color.fromRGBO(255, 159, 124, 1);
-  static const Color borderColor = Color.fromRGBO(52, 51, 67, 1);
+  static const Color borderColor = Color(0xFFCE1126);
   static const Color whiteColor = Colors.white;
 }

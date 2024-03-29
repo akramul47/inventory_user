@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:inventory_user/utils/pallete.dart';
 import 'package:shimmer/shimmer.dart';
 
 class CardSkeleton extends StatelessWidget {
@@ -15,7 +16,7 @@ class CardSkeleton extends StatelessWidget {
           margin: const EdgeInsets.all(5.0),
           child: ListTile(
             leading: Shimmer.fromColors(
-              baseColor: Colors.grey,
+              baseColor: Pallete.primaryRed.withOpacity(0.7),
               highlightColor: Colors.white,
               child: const CircleAvatar(
                 backgroundColor: Colors.white,
@@ -23,7 +24,7 @@ class CardSkeleton extends StatelessWidget {
               ),
             ),
             title: Shimmer.fromColors(
-              baseColor: Colors.grey[300]!,
+              baseColor: Pallete.primaryRed.withOpacity(0.7),
               highlightColor: Colors.white,
               child: Container(
                 color: Colors.grey[300],
@@ -48,7 +49,7 @@ class CardSkeleton extends StatelessWidget {
                 // ),
                 const SizedBox(height: 5),
                 Shimmer.fromColors(
-                  baseColor: Colors.grey[300]!,
+                  baseColor: Pallete.primaryRed.withOpacity(0.7),
                   highlightColor: Colors.white,
                   child: Container(
                     color: Colors.grey[300],
@@ -59,7 +60,7 @@ class CardSkeleton extends StatelessWidget {
               ],
             ),
             trailing: Shimmer.fromColors(
-              baseColor: Colors.red,
+              baseColor: Pallete.primaryRed.withOpacity(0.7),
               highlightColor: Colors.white,
               child: const Icon(Icons.star),
             ),

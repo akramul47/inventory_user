@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 
 class AddItemPage extends StatefulWidget {
@@ -136,7 +137,7 @@ class _AddItemPageState extends State<AddItemPage> {
       } else {
         await _postProduct();
       }
-  
+
       setState(() {
         _isSaving = false; // Hide circular progress indicator
       });
@@ -164,6 +165,7 @@ class _AddItemPageState extends State<AddItemPage> {
         request.fields['warehouse_id'] = _selectedWarehouseId.toString();
         request.fields['category_id'] = _selectedCategoryId.toString();
         request.fields['product_name'] = _nameController.text.trim();
+        // request.fields['description'] = _descriptionController.text.trim();
         request.fields['product_retail_price'] =
             _retailPriceController.text.trim();
         request.fields['product_sale_price'] = _salePriceController.text.trim();
@@ -194,7 +196,6 @@ class _AddItemPageState extends State<AddItemPage> {
           } else {
             print('No new images selected or product update failed');
           }
-
         } else {
           // Product information update failed
           String errorMessage =
@@ -286,6 +287,7 @@ class _AddItemPageState extends State<AddItemPage> {
     print('Entering _postProduct');
     final String barcode = _barcodeController.text;
     final String name = _nameController.text;
+    final String description = _descriptionController.text;
     final double retailPrice = double.parse(_retailPriceController.text);
     final double salePrice = double.parse(_salePriceController.text);
     final token = await AuthService.getToken();
@@ -301,6 +303,7 @@ class _AddItemPageState extends State<AddItemPage> {
       request.fields['category_id'] = _selectedCategoryId.toString();
       request.fields['brand_id'] = _selectedBrandId.toString();
       request.fields['product_name'] = name;
+      // request.fields['description'] = description;
       request.fields['product_retail_price'] = retailPrice.toString();
       request.fields['product_sale_price'] = salePrice.toString();
       request.fields['scan_code'] = barcode;
@@ -413,7 +416,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.redAccent[200],
+        backgroundColor: Pallete.primaryRed,
         centerTitle: true,
         title: Text(
           widget.isUpdatingItem ? 'Edit Item' : 'Add New Item',
@@ -433,10 +436,10 @@ class _AddItemPageState extends State<AddItemPage> {
                   onTap: () {
                     _showImagePickerDialog(context);
                   },
-                  child: CircleAvatar(
-                    backgroundColor: Colors.redAccent[200],
+                  child: const CircleAvatar(
+                    backgroundColor: Pallete.primaryRed,
                     radius: 40,
-                    child: const Icon(
+                    child: Icon(
                       Icons.add_a_photo,
                       color: Colors.white,
                       size: 30,
@@ -529,6 +532,13 @@ class _AddItemPageState extends State<AddItemPage> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16.0),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                  ),
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -642,7 +652,7 @@ class _AddItemPageState extends State<AddItemPage> {
                         icon: const Icon(Icons.delete),
                         label: const Text('Delete'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent[200],
+                          backgroundColor: Pallete.primaryRed,
                           foregroundColor: Colors.white,
                         ),
                       ),
@@ -654,10 +664,10 @@ class _AddItemPageState extends State<AddItemPage> {
         ),
       ),
       floatingActionButton: _isSaving
-          ? FloatingActionButton(
-              backgroundColor: Colors.redAccent[200],
+          ? const FloatingActionButton(
+              backgroundColor: Pallete.primaryRed,
               onPressed: null, // Disable button while saving
-              child: const Padding(
+              child: Padding(
                 padding: EdgeInsets.all(17.0),
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -665,7 +675,7 @@ class _AddItemPageState extends State<AddItemPage> {
               ),
             )
           : FloatingActionButton(
-              backgroundColor: Colors.redAccent[200],
+              backgroundColor: Pallete.primaryRed,
               onPressed: _saveProduct,
               child: const Icon(Icons.save, color: Colors.white),
             ),

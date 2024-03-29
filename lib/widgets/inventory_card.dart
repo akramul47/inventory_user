@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
+import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 
 class MyCardWidget extends StatefulWidget {
@@ -100,7 +101,7 @@ class _MyCardWidgetState extends State<MyCardWidget> {
               ),
               errorWidget: (context, url, error) => const Icon(
                 Icons.error,
-                color: Colors.red,
+                color: Pallete.primaryRed,
               ),
             ),
           ),
@@ -116,8 +117,8 @@ class _MyCardWidgetState extends State<MyCardWidget> {
   }
 
   Widget _buildLoadingIndicator(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -126,14 +127,14 @@ class _MyCardWidgetState extends State<MyCardWidget> {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+              valueColor: AlwaysStoppedAnimation<Color>(Pallete.primaryRed),
             ),
           ),
           SizedBox(width: 10),
           Text(
             'Loading more products',
             style: TextStyle(
-              color: Colors.grey[600],
+              color: Pallete.primaryRed,
               fontSize: 14,
             ),
           ),

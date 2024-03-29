@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
+import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,7 +16,6 @@ class AppDrawer extends StatelessWidget {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -23,8 +23,8 @@ class AppDrawer extends StatelessWidget {
         child: ListView(
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.redAccent[200],
+              decoration: const BoxDecoration(
+                color: Pallete.primaryRed,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

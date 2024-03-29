@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:inventory_user/screens/add_item.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:inventory_user/utils/pallete.dart';
 
 class SearchFromBarcode {
   static Future<void> scanBarcodeAndNavigate(BuildContext context) async {
@@ -28,18 +29,18 @@ class SearchFromBarcode {
             false, // Prevent dialog dismissal by tapping outside
         builder: (BuildContext context) {
           return AlertDialog(
-            content: Row(
+            content: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(
+                CircularProgressIndicator(
                   strokeWidth: 3,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                  valueColor: AlwaysStoppedAnimation<Color>(Pallete.primaryRed),
                 ),
-                const SizedBox(width: 15),
+                SizedBox(width: 15),
                 Text(
                   'Loading data...',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Pallete.primaryRed,
                     fontSize: 16,
                   ),
                 ),
@@ -103,7 +104,10 @@ class SearchFromBarcode {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text('Error'),
+              title: Text(
+                'Error',
+                style: TextStyle(color: Pallete.primaryRed),
+              ),
               content: Text('Failed to fetch product details.'),
               actions: [
                 TextButton(

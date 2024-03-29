@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:inventory_user/utils/pallete.dart';
 import 'package:inventory_user/widgets/app_drawer.dart';
 import 'package:inventory_user/widgets/inventory_card.dart';
 import 'package:inventory_user/widgets/scanner.dart';
@@ -75,10 +76,13 @@ class _MyHomePageState extends State<MyHomePage>
         appBar: AppBar(
           iconTheme: const IconThemeData(color: Colors.white),
           toolbarHeight: 55,
-          backgroundColor: Colors.redAccent[200],
+          backgroundColor: Pallete.primaryRed,
           title: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Image.asset('assets/logo.jpeg'),
+            child: Image.asset(
+              'assets/logo.jpeg',
+              height: 40,
+            ),
           ),
           actions: [
             Padding(
@@ -143,7 +147,7 @@ class _MyHomePageState extends State<MyHomePage>
         floatingActionButton: FloatingActionButton(
           onPressed: () {},
           tooltip: 'Add items',
-          backgroundColor: Colors.redAccent[200],
+          backgroundColor: Pallete.primaryRed,
           child: PopupMenuButton(
             color: Theme.of(context).colorScheme.secondary,
             icon: const Icon(
