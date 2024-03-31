@@ -168,7 +168,7 @@ class _AddItemPageState extends State<AddItemPage> {
         request.fields['warehouse_id'] = _selectedWarehouseId.toString();
         request.fields['category_id'] = _selectedCategoryId.toString();
         request.fields['product_name'] = _nameController.text.trim();
-        // request.fields['description'] = _descriptionController.text.trim();
+        request.fields['description'] = _descriptionController.text.trim();
         request.fields['product_retail_price'] =
             _retailPriceController.text.trim();
         request.fields['product_sale_price'] = _salePriceController.text.trim();
@@ -309,7 +309,7 @@ class _AddItemPageState extends State<AddItemPage> {
       request.fields['category_id'] = _selectedCategoryId.toString();
       request.fields['brand_id'] = _selectedBrandId.toString();
       request.fields['product_name'] = name;
-      // request.fields['description'] = description;
+      request.fields['description'] = description;
       request.fields['product_retail_price'] = retailPrice.toString();
       request.fields['product_sale_price'] = salePrice.toString();
       request.fields['scan_code'] = barcode;

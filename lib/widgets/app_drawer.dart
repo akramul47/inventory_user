@@ -4,6 +4,8 @@ import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../screens/export_import_screen.dart';
+
 class AppDrawer extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
 
@@ -94,8 +96,17 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            _buildListTile(Icons.import_export_outlined, 'Import', () {}),
-            _buildListTile(Icons.ios_share_outlined, 'Export', () {}),
+            _buildListTile(Icons.import_export_outlined, 'Import/Export', () {
+              // Close the drawer
+              Navigator.of(context).pop();
+
+              // Navigate to the ExportImportPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ExportImportPage()),
+              );
+            }),
+            // _buildListTile(Icons.ios_share_outlined, 'Export', () {}),
             _buildListTile(Icons.settings, 'Settings', () {
               // Settings page logic here
             }),
