@@ -22,6 +22,16 @@ class ProductProvider extends ChangeNotifier {
   List<Warehouse> get warehouses => _warehouses;
   List<Category> get categories => _categories;
   List<Brand> get brands => _brands;
+  int get currentPage => _currentPage;
+
+  // Setters or methods
+  void clearProducts() {
+    _products.clear();
+  }
+
+  void resetCurrentPage() {
+    _currentPage = 0;
+  }
 
   Future<void> logoutUser() async {
     try {

@@ -7,7 +7,10 @@ import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 
 class MyCardWidget extends StatefulWidget {
-  const MyCardWidget({Key? key}) : super(key: key);
+  const MyCardWidget({Key? key, required this.refreshDataCallback})
+      : super(key: key);
+
+  final Function refreshDataCallback;
 
   @override
   _MyCardWidgetState createState() => _MyCardWidgetState();
@@ -26,6 +29,15 @@ class _MyCardWidgetState extends State<MyCardWidget> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      // Call the refreshDataCallback function to trigger data refresh
+      widget.refreshDataCallback();
+    } catch (e) {
+      // If an error occurs during refresh, notify the RefreshController about the error
+    }
   }
 
   void _onScroll() {
@@ -50,19 +62,22 @@ class _MyCardWidgetState extends State<MyCardWidget> {
     final itemProvider = Provider.of<ProductProvider>(context);
     final List<Product> items = itemProvider.products;
 
-    return ListView.builder(
-      controller: _scrollController,
-      itemCount: items.length + 1, // Add 1 for loading indicator
-      itemBuilder: (context, index) {
-        if (index == items.length) {
-          // Reached the end of the list, show loading indicator
-          return _buildLoadingIndicator(context);
-        } else {
-          // Existing item
-          Product product = items[index];
-          return _buildProductItem(context, product);
-        }
-      },
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: items.length + 1, // Add 1 for loading indicator
+        itemBuilder: (context, index) {
+          if (index == items.length) {
+            // Reached the end of the list, show loading indicator
+            return _buildLoadingIndicator(context);
+          } else {
+            // Existing item
+            Product product = items[index];
+            return _buildProductItem(context, product);
+          }
+        },
+      ),
     );
   }
 
@@ -84,6 +99,7 @@ class _MyCardWidgetState extends State<MyCardWidget> {
               initialWarehouseTag: product.warehouseTag,
               product: product, // Pass the product object for updating
               isUpdatingItem: true, // Set the flag for updating
+              refreshDataCallback: widget.refreshDataCallback,
             ),
           ),
         );
@@ -92,6 +108,7 @@ class _MyCardWidgetState extends State<MyCardWidget> {
         margin: const EdgeInsets.all(5.0),
         child: ListTile(
           leading: CircleAvatar(
+            radius: 24,
             backgroundColor: Colors.transparent,
             child: CachedNetworkImage(
               imageUrl:

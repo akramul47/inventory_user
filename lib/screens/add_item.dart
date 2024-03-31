@@ -21,6 +21,7 @@ class AddItemPage extends StatefulWidget {
     this.initialWarehouseTag,
     this.product,
     this.isUpdatingItem = false,
+    this.refreshDataCallback,
   }) : super(key: key);
 
   final String? initialQRCode;
@@ -31,6 +32,8 @@ class AddItemPage extends StatefulWidget {
   final String? initialWarehouseTag;
   final Product? product;
   final bool isUpdatingItem;
+
+  final Function? refreshDataCallback;
 
   @override
   State<AddItemPage> createState() => _AddItemPageState();
@@ -182,12 +185,15 @@ class _AddItemPageState extends State<AddItemPage> {
 
         final responseData = jsonDecode(response.body);
 
-        if (response.statusCode == 200 && responseData['status'] == true) {
+        if (responseData['status'] == true) {
           // Product information updated successfully
           print('Product information updated successfully');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
+                
+          widget.refreshDataCallback?.call();
+          Navigator.pop(context);
 
           print('_imageFiles length: ${_imageFiles.length}');
           if (_imageFiles.isNotEmpty) {
@@ -234,7 +240,7 @@ class _AddItemPageState extends State<AddItemPage> {
           // Extract file name from the path
           String fileName = imageFile.path
               .split('/')
-              .last; // Assuming path uses '/' separator
+              .last;
           print('Image file name: $fileName');
           // Add file name to the request payload
           request.fields['images[]'] = fileName;
@@ -348,6 +354,8 @@ class _AddItemPageState extends State<AddItemPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product saved successfully')),
         );
+        // Call the _fetchData method to refresh the data
+        widget.refreshDataCallback?.call();
         Navigator.pop(context);
       } else {
         // Product save failed
@@ -385,6 +393,7 @@ class _AddItemPageState extends State<AddItemPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Item deleted successfully')),
             );
+            widget.refreshDataCallback?.call();
             Navigator.pop(context); // Go back to previous route
           } else {
             ScaffoldMessenger.of(context).showSnackBar(

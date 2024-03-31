@@ -24,6 +24,7 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   bool _isLoading = true;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -38,20 +39,40 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> _fetchData() async {
     try {
+      setState(() {
+        _isLoading = true;
+        _isRefreshing = true;
+      });
+
       final productProvider =
           Provider.of<ProductProvider>(context, listen: false);
+
+      // Clear the product data and reset the current page
+      productProvider.clearProducts();
+      productProvider.resetCurrentPage();
+
       final token = await AuthService.getToken();
 
       // Fetch products and warehouse data
       await productProvider.loadMoreProducts();
       await productProvider.fetchWarehouseCategoryBrand(token);
+
       setState(() {
-        _isLoading = false; // Set isLoading to false when data is loaded
+        _isLoading = false;
+        _isRefreshing = false;
       });
     } catch (e) {
       print('Error fetching data: $e');
       // Handle error, e.g., show a snackbar
     }
+  }
+
+  void refreshData() {
+    _fetchData();
+  }
+
+  Widget buildMyCardWidget() {
+    return MyCardWidget(refreshDataCallback: refreshData);
   }
 
   @override
@@ -140,7 +161,11 @@ class _MyHomePageState extends State<MyHomePage>
         drawer: AppDrawer(navigatorKey: GlobalKey<NavigatorState>()),
         body: TabBarView(
           children: [
-            _ItemsTabContent(isLoading: _isLoading),
+            _ItemsTabContent(
+                isLoading: _isLoading,
+                isRefreshing: _isRefreshing,
+                myCardWidget:
+                    buildMyCardWidget()), // Pass the buildMyCardWidget method
             WarehouseListWidget(),
           ],
         ),
@@ -192,7 +217,10 @@ class _MyHomePageState extends State<MyHomePage>
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AddItemPage(),
+                      builder: (context) => AddItemPage(
+                        refreshDataCallback:
+                            refreshData, // Pass the refreshData method reference
+                      ),
                     ),
                   );
                 },
@@ -207,9 +235,12 @@ class _MyHomePageState extends State<MyHomePage>
 }
 
 class _ItemsTabContent extends StatelessWidget {
-  const _ItemsTabContent({Key? key, required this.isLoading}) : super(key: key);
+  const _ItemsTabContent({Key? key, required this.isLoading, required this.isRefreshing,
+      required this.myCardWidget}) : super(key: key);
 
   final bool isLoading;
+  final bool isRefreshing;
+  final Widget myCardWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +254,7 @@ class _ItemsTabContent extends StatelessWidget {
         }
 
         // If products is not empty, show the list of items
-        return const MyCardWidget();
+        return myCardWidget;
       },
     );
   }

@@ -28,7 +28,7 @@ class CardSkeleton extends StatelessWidget {
               highlightColor: Colors.white,
               child: Container(
                 color: Colors.grey[300],
-                height: 16,
+                height: 14,
                 width: 100,
               ),
             ),
