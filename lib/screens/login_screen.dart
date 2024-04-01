@@ -32,7 +32,7 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       // Handle login error
-      print('Login Error: $e');
+      // print('Login Error: $e');
 
       // Show error dialog or message
       ScaffoldMessenger.of(context).showSnackBar(

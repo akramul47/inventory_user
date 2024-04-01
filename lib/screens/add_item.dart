@@ -87,15 +87,15 @@ class _AddItemPageState extends State<AddItemPage> {
       _selectedBrandId = widget.product!.brandId;
 
       // Print statements for debugging
-      print('Barcode: ${_barcodeController.text}');
-      print('Name: ${_nameController.text}');
-      print('Description: ${_descriptionController.text}');
-      print('Quantity: ${_quantityController.text}');
-      print('Retail Price: ${_retailPriceController.text}');
-      print('Sale Price: ${_salePriceController.text}');
-      print('Selected Warehouse ID: $_selectedWarehouseId');
-      print('Selected Category ID: $_selectedCategoryId');
-      print('Selected Brand ID: $_selectedBrandId');
+      // print('Barcode: ${_barcodeController.text}');
+      // print('Name: ${_nameController.text}');
+      // print('Description: ${_descriptionController.text}');
+      // print('Quantity: ${_quantityController.text}');
+      // print('Retail Price: ${_retailPriceController.text}');
+      // print('Sale Price: ${_salePriceController.text}');
+      // print('Selected Warehouse ID: $_selectedWarehouseId');
+      // print('Selected Category ID: $_selectedCategoryId');
+      // print('Selected Brand ID: $_selectedBrandId');
     } else {
       _barcodeController.text = widget.initialQRCode ?? '';
       _nameController.text = widget.initialName ?? '';
@@ -116,10 +116,8 @@ class _AddItemPageState extends State<AddItemPage> {
       }
     } else {
       final selectedFiles = await ImagePicker().pickMultiImage();
-      if (selectedFiles != null) {
-        pickedFiles.addAll(selectedFiles);
-      }
-    }
+      pickedFiles.addAll(selectedFiles);
+        }
 
     if (pickedFiles.isNotEmpty) {
       _compressAndAddFiles(pickedFiles);
@@ -182,13 +180,13 @@ class _AddItemPageState extends State<AddItemPage> {
         _isSaving = false; // Hide circular progress indicator
       });
     } else {
-      print('Validation errors');
+      // print('Validation errors');
     }
   }
 
   // Function for updating product information
   Future<void> _updateProduct() async {
-    print('Entering _updateProduct');
+    // print('Entering _updateProduct');
 
     final token = await AuthService.getToken();
     final productId = widget.product?.id;
@@ -211,36 +209,36 @@ class _AddItemPageState extends State<AddItemPage> {
         request.fields['product_sale_price'] = _salePriceController.text.trim();
         request.fields['scan_code'] = _barcodeController.text.trim();
 
-        print('Request Headers: ${request.headers}');
-        print('Request Fields: ${request.fields}');
+        // print('Request Headers: ${request.headers}');
+        // print('Request Fields: ${request.fields}');
 
         final streamedResponse = await request.send();
         final response = await http.Response.fromStream(streamedResponse);
 
-        print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        // print('Response status code: ${response.statusCode}');
+        // print('Response body: ${response.body}');
 
         final responseData = jsonDecode(response.body);
 
         if (responseData['status'] == true) {
           // Product information updated successfully
-          print('Product information updated successfully');
+          // print('Product information updated successfully');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
 
-          print('_imageFiles length: ${_imageFiles.length}');
+          // print('_imageFiles length: ${_imageFiles.length}');
           if (_imageFiles.isNotEmpty) {
-            print('Calling _updateProductImages');
+            // print('Calling _updateProductImages');
             await _updateProductImages(productId, token);
           } else {
-            print('No new images selected or product update failed');
+            // print('No new images selected or product update failed');
           }
         } else {
           // Product information update failed
           String errorMessage =
               responseData['message'] as String? ?? 'Failed to update product';
-          print('Error updating product: $errorMessage');
+          // print('Error updating product: $errorMessage');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(errorMessage)),
           );
@@ -249,7 +247,7 @@ class _AddItemPageState extends State<AddItemPage> {
         throw Exception('Product ID is null');
       }
     } catch (e) {
-      print('Error updating product: $e');
+      // print('Error updating product: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('An error occurred')),
       );
@@ -257,7 +255,7 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _updateProductImages(int productId, String token) async {
-    print('Entering _updateProductImages');
+    // print('Entering _updateProductImages');
 
     final uri = Uri.parse(
         'https://warehouse.z8tech.one/Backend/public/api/products/app/update/image/$productId');
@@ -269,12 +267,12 @@ class _AddItemPageState extends State<AddItemPage> {
     try {
       // Handle image files
       if (_imageFiles.isNotEmpty) {
-        print('Selected image count: ${_imageFiles.length}');
+        // print('Selected image count: ${_imageFiles.length}');
         for (var imageFile in _imageFiles) {
-          print('Image file path: ${imageFile.path}');
+          // print('Image file path: ${imageFile.path}');
           // Extract file name from the path
           String fileName = imageFile.path.split('/').last;
-          print('Image file name: $fileName');
+          // print('Image file name: $fileName');
           // Add file name to the request payload
           request.fields['images[]'] = fileName;
           // Add file to the request
@@ -283,19 +281,19 @@ class _AddItemPageState extends State<AddItemPage> {
           request.files.add(multipartFile);
         }
       } else {
-        print('No new images selected');
+        // print('No new images selected');
       }
 
       // Print the request payload
-      print('Request Headers: ${request.headers}');
-      print('Request Fields: ${request.fields}');
-      print('Request Files: ${request.files.map((file) => file.field)}');
+      // print('Request Headers: ${request.headers}');
+      // print('Request Fields: ${request.fields}');
+      // print('Request Files: ${request.files.map((file) => file.field)}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Image request status code: ${response.statusCode}');
-      print('Image request body: ${response.body}');
+      // print('Image request status code: ${response.statusCode}');
+      // print('Image request body: ${response.body}');
 
       final imageResponseData = jsonDecode(response.body);
 
@@ -315,7 +313,7 @@ class _AddItemPageState extends State<AddItemPage> {
         );
       }
     } catch (e) {
-      print('Error updating product images: $e');
+      // print('Error updating product images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('An error occurred while uploading the images')),
@@ -324,7 +322,7 @@ class _AddItemPageState extends State<AddItemPage> {
   }
 
   Future<void> _postProduct() async {
-    print('Entering _postProduct');
+    // print('Entering _postProduct');
     final String barcode = _barcodeController.text;
     final String name = _nameController.text;
     final String description = _descriptionController.text;
@@ -350,11 +348,11 @@ class _AddItemPageState extends State<AddItemPage> {
 
       // Add multiple image files
       if (_imageFiles.isNotEmpty) {
-        print('Selected image count: ${_imageFiles.length}');
+        // print('Selected image count: ${_imageFiles.length}');
         for (var imageFile in _imageFiles) {
           // Extract file name from the path
           String fileName = imageFile.path.split('/').last;
-          print('Image file name: $fileName');
+          // print('Image file name: $fileName');
           // Add file name to the request payload
           request.fields['images[]'] = fileName;
           // Add file to the request
@@ -365,16 +363,16 @@ class _AddItemPageState extends State<AddItemPage> {
       }
 
       // Print the request payload
-      print('Request payload:');
-      print('Headers: ${request.headers}');
-      print('Fields: ${request.fields}');
-      print('Files: ${request.files.map((file) => file.field)}');
+      // print('Request payload:');
+      // print('Headers: ${request.headers}');
+      // print('Fields: ${request.fields}');
+      // print('Files: ${request.files.map((file) => file.field)}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      // print('Response status code: ${response.statusCode}');
+      // print('Response body: ${response.body}');
 
       final responseData = jsonDecode(response.body);
 
@@ -395,7 +393,7 @@ class _AddItemPageState extends State<AddItemPage> {
         );
       }
     } catch (e) {
-      print('Error uploading images: $e');
+      // print('Error uploading images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('An error occurred while uploading the images')),
@@ -438,7 +436,7 @@ class _AddItemPageState extends State<AddItemPage> {
         throw Exception('Product ID is null');
       }
     } catch (e) {
-      print('Error deleting product: $e');
+      // print('Error deleting product: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('An error occurred')),
       );
@@ -451,8 +449,8 @@ class _AddItemPageState extends State<AddItemPage> {
     final token = await AuthService.getToken();
     final productId = widget.product?.id;
 
-    print('Image ID: ${productImageId}');
-    print('Product ID: ${productId}');
+    // print('Image ID: ${productImageId}');
+    // print('Product ID: ${productId}');
 
     try {
       final response = await http.post(
@@ -490,7 +488,7 @@ class _AddItemPageState extends State<AddItemPage> {
       }
     } catch (e) {
       // Error occurred
-      print('Error deleting image: $e');
+      // print('Error deleting image: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('An error occurred')),
       );
@@ -628,7 +626,7 @@ class _AddItemPageState extends State<AddItemPage> {
                             _barcodeError = null; // Clear previous error if any
                           });
                         } catch (e) {
-                          print('Error scanning barcode: $e');
+                          // print('Error scanning barcode: $e');
                           setState(() {
                             _barcodeError = 'Error scanning barcode';
                           });

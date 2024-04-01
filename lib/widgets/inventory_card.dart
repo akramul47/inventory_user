@@ -139,7 +139,7 @@ class _MyCardWidgetState extends State<MyCardWidget> {
 
     // If all products have been loaded, don't show the loading indicator
     if (loadedProducts >= itemProvider.totalProducts) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     return const Padding(

@@ -41,13 +41,13 @@ class AppDrawer extends StatelessWidget {
                           backgroundImage: NetworkImage(snapshot.data!),
                         );
                       } else {
-                        return CircleAvatar(
+                        return const CircleAvatar(
                           backgroundImage: AssetImage('assets/gamer.png'),
                         );
                       }
                     },
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   FutureBuilder<String?>(
                     future: SharedPreferences.getInstance()
                         .then((prefs) => prefs.getString('role')),
@@ -55,14 +55,14 @@ class AppDrawer extends StatelessWidget {
                       if (snapshot.hasData && snapshot.data != null) {
                         return Text(
                           snapshot.data!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         );
                       } else {
-                        return Text(
+                        return const Text(
                           'Role Not Found',
                           style: TextStyle(
                             color: Colors.white,
@@ -80,12 +80,12 @@ class AppDrawer extends StatelessWidget {
                       if (snapshot.hasData && snapshot.data != null) {
                         return Text(
                           snapshot.data!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                           ),
                         );
                       } else {
-                        return Text(
+                        return const Text(
                           'Email Not Found',
                           style: TextStyle(
                             color: Colors.white,
@@ -127,7 +127,7 @@ class AppDrawer extends StatelessWidget {
             _buildListTile(Icons.help, 'Help', () {
               // Help page logic here
             }),
-            Divider(),
+            const Divider(),
             _buildLogoutButton(context),
           ],
         ),
@@ -145,8 +145,8 @@ class AppDrawer extends StatelessWidget {
 
   Widget _buildLogoutButton(BuildContext context) {
     return ListTile(
-      leading: Icon(Icons.logout_outlined),
-      title: Text('Sign Out'),
+      leading: const Icon(Icons.logout_outlined),
+      title: const Text('Sign Out'),
       onTap: () => _handleLogout(context),
     );
   }

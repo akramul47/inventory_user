@@ -147,7 +147,7 @@ class _ReportPageState extends State<ReportPage> {
                       },
                       child: Container(
                         alignment: Alignment.center,
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(5),
@@ -156,7 +156,7 @@ class _ReportPageState extends State<ReportPage> {
                           _startDate != null
                               ? DateFormat('dd/MM/yyyy').format(_startDate!)
                               : 'Start Date',
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
@@ -179,7 +179,7 @@ class _ReportPageState extends State<ReportPage> {
                       },
                       child: Container(
                         alignment: Alignment.center,
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(5),
@@ -188,7 +188,7 @@ class _ReportPageState extends State<ReportPage> {
                           _endDate != null
                               ? DateFormat('dd/MM/yyyy').format(_endDate!)
                               : 'End Date',
-                          style: TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                     ),
@@ -233,17 +233,17 @@ class _ReportPageState extends State<ReportPage> {
                           children: [
                             Text(
                               'Incoming Products: ${data['incomingProducts']}',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Date: ${data['date']}',
-                              style: TextStyle(color: Colors.grey),
+                              style: const TextStyle(color: Colors.grey),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               'Shift Products: ${data['shiftProducts']}',
-                              style: TextStyle(color: Colors.grey),
+                              style: const TextStyle(color: Colors.grey),
                             ),
                           ],
                         ),

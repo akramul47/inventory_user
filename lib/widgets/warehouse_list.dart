@@ -13,7 +13,7 @@ class WarehouseListWidget extends StatelessWidget {
 
         if (warehouses.isEmpty) {
           // Show loading indicator or empty state if no warehouses are fetched yet
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(),
           );
         }
@@ -23,11 +23,11 @@ class WarehouseListWidget extends StatelessWidget {
           itemBuilder: (context, index) {
             final warehouse = warehouses[index];
             return Card(
-              margin: EdgeInsets.all(8.0),
+              margin: const EdgeInsets.all(8.0),
               child: ListTile(
                 title: Text(
                   warehouse.name,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16, // Adjust font size as needed
                     fontWeight: FontWeight.bold, // Headline font weight
                   ),

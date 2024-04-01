@@ -62,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage>
         _isRefreshing = false;
       });
     } catch (e) {
-      print('Error fetching data: $e');
+      // print('Error fetching data: $e');
       // Handle error, e.g., show a snackbar
     }
   }
@@ -166,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage>
                 isRefreshing: _isRefreshing,
                 myCardWidget:
                     buildMyCardWidget()), // Pass the buildMyCardWidget method
-            WarehouseListWidget(),
+            const WarehouseListWidget(),
           ],
         ),
         floatingActionButton: FloatingActionButton(

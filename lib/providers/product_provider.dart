@@ -17,7 +17,7 @@ class ProductProvider extends ChangeNotifier {
   List<Category> _categories = [];
   List<Brand> _brands = [];
   int _currentPage = 0; // Track the current page
-   int _totalProducts = 0;
+  int _totalProducts = 0;
 
   List<Product> get products => _products;
   List<Warehouse> get warehouses => _warehouses;
@@ -46,10 +46,10 @@ class ProductProvider extends ChangeNotifier {
           listen: false);
       await authProvider.logout();
     } catch (e) {
-      print('Error during logout: $e');
+      // print('Error during logout: $e');
     }
   }
-  
+
   Future<Map<String, dynamic>> fetchProductsByPage(int page) async {
     try {
       final token = await AuthService.getToken();
@@ -63,7 +63,7 @@ class ProductProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> productsData = responseData['products']['data'];
-        
+
         // Update totalProducts with the total count from API response
         _totalProducts = responseData['total'];
 
@@ -79,11 +79,28 @@ class ProductProvider extends ChangeNotifier {
           'next_page_url': nextPageUrl,
         };
       } else {
-        // Handle other status codes if necessary
-        throw Exception('Failed to fetch products');
+        // Check if the response indicates an invalid token
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData['message'] == 'Token has expired') {
+          // Token has expired, log out the user and show a snackbar
+          await logoutUser();
+          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+            const SnackBar(
+              content: Text('Logged out. Token expired!'),
+            ),
+          );
+        } else {
+          throw Exception('Failed to fetch products');
+        }
+
+        // Return a default value if an exception is not thrown above
+        return {
+          'products': [], // or any default value you prefer
+          'next_page_url': null, // or any default value you prefer
+        };
       }
     } catch (e) {
-      print('Error fetching products: $e');
+      // print('Error fetching products: $e');
       throw Exception('Failed to fetch products');
     }
   }
@@ -123,7 +140,7 @@ class ProductProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error loading more products: $e');
+      // print('Error loading more products: $e');
     }
   }
 
@@ -134,7 +151,7 @@ class ProductProvider extends ChangeNotifier {
           products.map((product) => jsonEncode(product.toJson())).toList();
       await prefs.setStringList('products', productsJsonStrings);
     } catch (e) {
-      print('Error updating local storage: $e');
+      // print('Error updating local storage: $e');
       throw Exception('Failed to update local storage');
     }
   }
@@ -151,7 +168,7 @@ class ProductProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error loading products from local storage: $e');
+      // print('Error loading products from local storage: $e');
       throw Exception('Failed to load products from local storage');
     }
   }
@@ -181,7 +198,7 @@ class ProductProvider extends ChangeNotifier {
         throw Exception('Failed to update product: ${response.statusCode}');
       }
     } catch (error) {
-      print('Error updating product: $error');
+      // print('Error updating product: $error');
       throw Exception('Failed to update product');
     }
   }
@@ -212,7 +229,7 @@ class ProductProvider extends ChangeNotifier {
         },
       );
 
-      print('Response body: ${response.body}');
+      // print('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> responseData = jsonDecode(response.body)['data'];
@@ -228,7 +245,7 @@ class ProductProvider extends ChangeNotifier {
         throw Exception('Failed to fetch warehouses');
       }
     } catch (e) {
-      print('Error fetching warehouses: $e');
+      // print('Error fetching warehouses: $e');
       throw Exception('Failed to fetch warehouses');
     }
   }
@@ -240,9 +257,9 @@ class ProductProvider extends ChangeNotifier {
           .map((warehouse) => jsonEncode(warehouse.toJson()))
           .toList();
       await prefs.setStringList('warehouses', warehousesJsonStrings);
-      print('Warehouses: $_warehouses');
+      // print('Warehouses: $_warehouses');
     } catch (e) {
-      print('Error updating local storage: $e');
+      // print('Error updating local storage: $e');
       throw Exception('Failed to update local storage');
     }
   }
@@ -262,7 +279,7 @@ class ProductProvider extends ChangeNotifier {
         await fetchWarehouses(forceRefresh: true);
       }
     } catch (e) {
-      print('Error loading warehouses from local storage: $e');
+      // print('Error loading warehouses from local storage: $e');
       throw Exception('Failed to load warehouses from local storage');
     }
   }
@@ -318,7 +335,7 @@ class ProductProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error loading categories from local storage: $e');
+      // print('Error loading categories from local storage: $e');
       throw Exception('Failed to load categories from local storage');
     }
   }
@@ -334,7 +351,7 @@ class ProductProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error loading brands from local storage: $e');
+      // print('Error loading brands from local storage: $e');
       throw Exception('Failed to load brands from local storage');
     }
   }
@@ -346,7 +363,7 @@ class ProductProvider extends ChangeNotifier {
           categories.map((category) => jsonEncode(category.toJson())).toList();
       await prefs.setStringList('categories', categoriesJsonStrings);
     } catch (e) {
-      print('Error updating local storage: $e');
+      // print('Error updating local storage: $e');
       throw Exception('Failed to update local storage');
     }
   }
@@ -358,7 +375,7 @@ class ProductProvider extends ChangeNotifier {
           brands.map((brand) => jsonEncode(brand.toJson())).toList();
       await prefs.setStringList('brands', brandsJsonStrings);
     } catch (e) {
-      print('Error updating local storage: $e');
+      // print('Error updating local storage: $e');
       throw Exception('Failed to update local storage');
     }
   }
@@ -396,7 +413,7 @@ class ProductProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print('Error fetching warehouse, category, and brand: $e');
+      // print('Error fetching warehouse, category, and brand: $e');
       throw Exception('Failed to fetch warehouse, category, and brand');
     }
   }

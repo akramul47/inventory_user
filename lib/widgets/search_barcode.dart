@@ -14,14 +14,13 @@ class SearchFromBarcode {
       String? scannedCode = result.rawContent;
       await _fetchProductDetailsAndNavigate(context, scannedCode);
     } on Exception catch (e) {
-      print('Error scanning barcode: $e');
+      // print('Error scanning barcode: $e');
     }
   }
 
   static Future<void> _fetchProductDetailsAndNavigate(
       BuildContext context, String? scannedCode) async {
     if (scannedCode != null) {
-      print('Scanned Code: $scannedCode');
 
       showDialog(
         context: context,
@@ -58,7 +57,6 @@ class SearchFromBarcode {
 
       Uri url = Uri.parse(
           'https://warehouse.z8tech.one/Backend/public/api/product/search?scan_code=$scannedCode');
-      print('Fetching product details from: $url');
 
       var response = await http.get(
         url,
@@ -69,16 +67,16 @@ class SearchFromBarcode {
         Navigator.pop(context); // Close the loading dialog
 
         var responseData = jsonDecode(response.body);
-        print('Response Data: $responseData');
+        // print('Response Data: $responseData');
 
         var productData = responseData['data'];
-        print('Product Data: $productData');
+        // print('Product Data: $productData');
 
         Product product = Product.fromJson(productData);
-        print('Parsed Product: $product');
+        // print('Parsed Product: $product');
 
         // Delay navigation to allow the loading dialog to be visible
-        Future.delayed(Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -98,8 +96,8 @@ class SearchFromBarcode {
       } else {
         Navigator.pop(context); // Close the loading dialog
         // Handle error - Failed to fetch product details
-        print(
-            'Failed to fetch product details. Status Code: ${response.statusCode}');
+        // print(
+        //     'Failed to fetch product details. Status Code: ${response.statusCode}');
         showDialog(
           context: context,
           builder: (BuildContext context) {

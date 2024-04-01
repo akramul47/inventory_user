@@ -29,8 +29,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
   String? _downloadUrl;
 
   Future<void> _importProducts() async {
-    print('_selectedFile: $_selectedFile');
-    print('_selectedFile!.bytes: ${_selectedFile!.bytes}');
+    // print('_selectedFile: $_selectedFile');
+    // print('_selectedFile!.bytes: ${_selectedFile!.bytes}');
 
     if (_selectedFile == null || _selectedFile!.bytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +98,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
         );
       }
     } catch (e) {
-      print('Error importing products: $e');
+      // print('Error importing products: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error importing products')),
       );
@@ -123,8 +123,8 @@ class _ExportImportPageState extends State<ExportImportPage> {
     final payload =
         _selectedWarehouse == null ? {} : {'id': _selectedWarehouse!.id};
 
-    print('Export request URL: $url');
-    print('Export request payload: $payload');
+    // print('Export request URL: $url');
+    // print('Export request payload: $payload');
 
     final response = await http.post(
       Uri.parse(url),
