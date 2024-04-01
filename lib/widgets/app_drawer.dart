@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
+import 'package:inventory_user/screens/report_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,7 +104,20 @@ class AppDrawer extends StatelessWidget {
               // Navigate to the ExportImportPage
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const ExportImportPage()),
+                MaterialPageRoute(
+                    builder: (context) => const ExportImportPage()),
+              );
+            }),
+            _buildListTile(Icons.file_copy, 'Report', () {
+              // Close the drawer
+              Navigator.of(context).pop();
+
+              // Navigate to the ExportImportPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReportPage(),
+                ),
               );
             }),
             // _buildListTile(Icons.ios_share_outlined, 'Export', () {}),

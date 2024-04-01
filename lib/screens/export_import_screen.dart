@@ -43,6 +43,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
       Uri.parse('https://warehouse.z8tech.one/Backend/public/api/import'),
     );
     request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Content-type'] = 'Application/json';
     request.files.add(
       http.MultipartFile.fromBytes(
         'file',
@@ -51,9 +52,14 @@ class _ExportImportPageState extends State<ExportImportPage> {
       ),
     );
 
+    print('Selected file name: ${_selectedFile?.name}');
+
     print('Import request: $request');
 
     final response = await request.send();
+
+    print('Import response body: ${await response.stream.bytesToString()}');
+    print('Import response headers: ${response.headers}');
 
     setState(() {
       _isImportingProducts = false;
@@ -63,9 +69,14 @@ class _ExportImportPageState extends State<ExportImportPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Imported successfully')),
       );
-    } else {
+    } else if (response.statusCode == 500) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${response.reasonPhrase}')),
+        const SnackBar(content: Text('Internal Server Error')),
+      );
+    } else {
+      final errorBody = await response.stream.bytesToString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $errorBody')),
       );
     }
   }
@@ -147,146 +158,148 @@ class _ExportImportPageState extends State<ExportImportPage> {
         ),
         backgroundColor: Pallete.primaryRed,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(
-              height: 10,
-            ),
-            const Text(
-              'IMPORT',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await FilePicker.platform.pickFiles(
-                      allowMultiple: false,
-                      type: FileType.custom,
-                      allowedExtensions: ['csv'],
-                    );
-                    if (result != null) {
-                      setState(() {
-                        _selectedFile = result.files.single;
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Pallete.primaryRed.withOpacity(0.8),
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Choose File'),
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 120,
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: _isImportingProducts ? null : _importProducts,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(
+                height: 10,
+              ),
+              const Text(
+                'IMPORT',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        allowMultiple: false,
+                        type: FileType.custom,
+                        allowedExtensions: ['csv'],
+                      );
+                      if (result != null) {
+                        setState(() {
+                          _selectedFile = result.files.single;
+                        });
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Pallete.primaryRed.withOpacity(0.8),
                       foregroundColor: Colors.white,
                     ),
-                    child: _isImportingProducts
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('Import'),
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text('Choose File'),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (_selectedFile != null)
-              Text(
-                'Selected file: ${_selectedFile!.name}',
-                style: const TextStyle(fontSize: 16),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 120,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: _isImportingProducts ? null : _importProducts,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Pallete.primaryRed.withOpacity(0.8),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _isImportingProducts
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text('Import'),
+                    ),
+                  ),
+                ],
               ),
-            const Divider(
-              height: 70,
-              thickness: 3,
-              color: Pallete.primaryRed,
-            ),
-            const Text(
-              'EXPORT',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<Warehouse>(
-              value: _selectedWarehouse,
-              hint: const Text('Select Warehouse'),
-              items: [
-                const DropdownMenuItem(
-                  value: null,
-                  child: Text('All'),
+              const SizedBox(height: 10),
+              if (_selectedFile != null)
+                Text(
+                  'Selected file: ${_selectedFile!.name}',
+                  style: const TextStyle(fontSize: 16),
                 ),
-                ...warehouses.map((warehouse) {
-                  return DropdownMenuItem<Warehouse>(
-                    value: warehouse,
-                    child: Text(warehouse.name),
-                  );
-                }).toList(),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedWarehouse = value;
-                });
-              },
-              validator: (value) {
-                if (value == null) {
-                  return 'Please select a warehouse';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 160,
-              height: 40,
-              child: ElevatedButton(
-                onPressed: _isExportingProducts ? null : _exportProducts,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Pallete.primaryRed.withOpacity(0.8),
-                  foregroundColor: Colors.white,
-                ),
-                child: _isExportingProducts
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+              const Divider(
+                height: 70,
+                thickness: 3,
+                color: Pallete.primaryRed,
+              ),
+              const Text(
+                'EXPORT',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<Warehouse>(
+                value: _selectedWarehouse,
+                hint: const Text('Select Warehouse'),
+                items: [
+                  const DropdownMenuItem(
+                    value: null,
+                    child: Text('All'),
+                  ),
+                  ...warehouses.map((warehouse) {
+                    return DropdownMenuItem<Warehouse>(
+                      value: warehouse,
+                      child: Text(warehouse.name),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedWarehouse = value;
+                  });
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please select a warehouse';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: 160,
+                height: 40,
+                child: ElevatedButton(
+                  onPressed: _isExportingProducts ? null : _exportProducts,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Pallete.primaryRed.withOpacity(0.8),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isExportingProducts
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
-                        ),
-                      )
-                    : const Text('Generate CSV'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_downloadUrl != null)
-              ElevatedButton.icon(
-                onPressed: () => _downloadFile(_downloadUrl!),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Pallete.primaryRed.withOpacity(0.8),
-                  foregroundColor: Colors.white,
+                        )
+                      : const Text('Generate CSV'),
                 ),
-                icon: const Icon(Icons.download),
-                label: const Text('Download CSV'),
               ),
-          ],
+              const SizedBox(height: 16),
+              if (_downloadUrl != null)
+                ElevatedButton.icon(
+                  onPressed: () => _downloadFile(_downloadUrl!),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Pallete.primaryRed.withOpacity(0.8),
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: const Icon(Icons.download),
+                  label: const Text('Download CSV'),
+                ),
+            ],
+          ),
         ),
       ),
     );

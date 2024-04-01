@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/utils/pallete.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class AddItemPage extends StatefulWidget {
@@ -103,9 +105,9 @@ class _AddItemPageState extends State<AddItemPage> {
       _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
     }
   }
-
+  
   Future<void> _getImage(ImageSource source) async {
-    List<XFile>? pickedFiles;
+    List<XFile> pickedFiles = [];
 
     if (source == ImageSource.camera) {
       final pickedFile = await ImagePicker().pickImage(source: source);
@@ -113,20 +115,55 @@ class _AddItemPageState extends State<AddItemPage> {
         pickedFiles = [pickedFile];
       }
     } else {
-      pickedFiles = await ImagePicker().pickMultiImage();
+      final selectedFiles = await ImagePicker().pickMultiImage();
+      if (selectedFiles != null) {
+        pickedFiles.addAll(selectedFiles);
+      }
     }
 
+    if (pickedFiles.isNotEmpty) {
+      _compressAndAddFiles(pickedFiles);
+    } else {
+      // Show a snackbar if no image is selected
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No image selected')),
+      );
+    }
+  }
+
+  void _compressAndUpdateImages(List<XFile> pickedFiles) {
     setState(() {
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
-        _imageFiles =
-            pickedFiles.map((pickedFile) => File(pickedFile.path)).toList();
-      } else {
-        // Show a snackbar if no image is selected
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No image selected')),
-        );
-      }
+      _imageFiles = []; // Clear the existing list
+      _compressAndAddFiles(pickedFiles);
     });
+  }
+
+  Future<void> _compressAndAddFiles(List<XFile> pickedFiles) async {
+    for (var pickedFile in pickedFiles) {
+      final compressedFile = await _compressImage(File(pickedFile.path));
+      setState(() {
+        _imageFiles.add(compressedFile);
+      });
+    }
+  }
+
+  Future<File> _compressImage(File file) async {
+    final compressedBytes = await FlutterImageCompress.compressWithFile(
+      file.absolute.path,
+      minWidth: 2300,
+      minHeight: 1500,
+      quality: 85,
+    );
+
+    // Get the temporary directory
+    final tempDir = await getTemporaryDirectory();
+
+    // Create a new file in the temporary directory
+    final compressedFile =
+        File('${tempDir.path}/compressed_${file.path.split('/').last}');
+    await compressedFile.writeAsBytes(compressedBytes!);
+
+    return compressedFile;
   }
 
   Future<void> _saveProduct() async {
@@ -192,8 +229,7 @@ class _AddItemPageState extends State<AddItemPage> {
             const SnackBar(content: Text('Product updated successfully')),
           );
                 
-          widget.refreshDataCallback?.call();
-          Navigator.pop(context);
+          
 
           print('_imageFiles length: ${_imageFiles.length}');
           if (_imageFiles.isNotEmpty) {
@@ -238,9 +274,7 @@ class _AddItemPageState extends State<AddItemPage> {
         for (var imageFile in _imageFiles) {
           print('Image file path: ${imageFile.path}');
           // Extract file name from the path
-          String fileName = imageFile.path
-              .split('/')
-              .last;
+          String fileName = imageFile.path.split('/').last;
           print('Image file name: $fileName');
           // Add file name to the request payload
           request.fields['images[]'] = fileName;
@@ -271,6 +305,7 @@ class _AddItemPageState extends State<AddItemPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product images updated successfully')),
         );
+        widget.refreshDataCallback?.call();
         Navigator.pop(context);
       } else {
         // Product image update failed
@@ -318,16 +353,11 @@ class _AddItemPageState extends State<AddItemPage> {
       if (_imageFiles.isNotEmpty) {
         print('Selected image count: ${_imageFiles.length}');
         for (var imageFile in _imageFiles) {
-          print('Image file path: ${imageFile.path}');
           // Extract file name from the path
-          String fileName = imageFile.path
-              .split('/')
-              .last; // Assuming path uses '/' separator
+          String fileName = imageFile.path.split('/').last;
           print('Image file name: $fileName');
           // Add file name to the request payload
           request.fields['images[]'] = fileName;
-        }
-        for (var imageFile in _imageFiles) {
           // Add file to the request
           final multipartFile =
               await http.MultipartFile.fromPath('images[]', imageFile.path);
