@@ -17,12 +17,14 @@ class ProductProvider extends ChangeNotifier {
   List<Category> _categories = [];
   List<Brand> _brands = [];
   int _currentPage = 0; // Track the current page
+   int _totalProducts = 0;
 
   List<Product> get products => _products;
   List<Warehouse> get warehouses => _warehouses;
   List<Category> get categories => _categories;
   List<Brand> get brands => _brands;
   int get currentPage => _currentPage;
+  int get totalProducts => _totalProducts;
 
   // Setters or methods
   void clearProducts() {
@@ -48,7 +50,7 @@ class ProductProvider extends ChangeNotifier {
     }
   }
   
-  Future<List<Product>> fetchProductsByPage(int page) async {
+  Future<Map<String, dynamic>> fetchProductsByPage(int page) async {
     try {
       final token = await AuthService.getToken();
       final response = await http.get(
@@ -59,42 +61,61 @@ class ProductProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> responseData =
-            jsonDecode(response.body)['products']['data'];
-        final List<Product> nextPageProducts = responseData.map((data) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final List<dynamic> productsData = responseData['products']['data'];
+        
+        // Update totalProducts with the total count from API response
+        _totalProducts = responseData['total'];
+
+        final List<Product> nextPageProducts = productsData.map((data) {
           final product = Product.fromJson(data);
           return product;
         }).toList();
 
-        return nextPageProducts;
+        final nextPageUrl = responseData['products']['next_page_url'];
+
+        return {
+          'products': nextPageProducts,
+          'next_page_url': nextPageUrl,
+        };
       } else {
-        // Check if the response indicates an invalid token
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        if (responseData['message'] == 'Token has expired') {
-          // Token has expired, log out the user and show a snackbar
-          await logoutUser();
-          ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-            const SnackBar(
-              content: Text('Logged out. Token expired!'),
-            ),
-          );
-        } else {
-          throw Exception('Failed to fetch products');
-        }
+        // Handle other status codes if necessary
+        throw Exception('Failed to fetch products');
       }
     } catch (e) {
       print('Error fetching products: $e');
       throw Exception('Failed to fetch products');
     }
-    return [];
   }
 
-  // Method to load more products
+// Method to load more products
   Future<void> loadMoreProducts() async {
     try {
       final nextPage = _currentPage + 1;
-      final nextPageProducts = await fetchProductsByPage(nextPage);
 
+      // If it's the first page, load it directly
+      if (_currentPage == 0) {
+        final nextPageData = await fetchProductsByPage(nextPage);
+        final List<Product> nextPageProducts = nextPageData['products'];
+        final nextPageUrl = nextPageData['next_page_url'];
+        _products.addAll(nextPageProducts);
+        _currentPage = nextPage;
+        notifyListeners();
+        return;
+      }
+
+      // If it's not the first page, check if next_page_url is null
+      final nextPageData = await fetchProductsByPage(nextPage);
+      final List<Product> nextPageProducts = nextPageData['products'];
+      final nextPageUrl = nextPageData['next_page_url'];
+
+      // Check if next_page_url is null
+      if (nextPageUrl == null) {
+        // Next page URL is null, so no more products to load
+        return;
+      }
+
+      // Otherwise, continue loading
       _products.addAll(nextPageProducts);
       _currentPage = nextPage;
 

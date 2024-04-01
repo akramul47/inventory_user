@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +12,7 @@ import '../models/product_model.dart';
 import '../providers/product_provider.dart';
 import '../services/auth_servcie.dart';
 import '../utils/pallete.dart';
+import 'package:csv/csv.dart';
 
 class ExportImportPage extends StatefulWidget {
   const ExportImportPage({Key? key}) : super(key: key);
@@ -26,7 +29,10 @@ class _ExportImportPageState extends State<ExportImportPage> {
   String? _downloadUrl;
 
   Future<void> _importProducts() async {
-    if (_selectedFile == null) {
+    print('_selectedFile: $_selectedFile');
+    print('_selectedFile!.bytes: ${_selectedFile!.bytes}');
+
+    if (_selectedFile == null || _selectedFile!.bytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a CSV file')),
       );
@@ -37,47 +43,69 @@ class _ExportImportPageState extends State<ExportImportPage> {
       _isImportingProducts = true;
     });
 
-    final token = await AuthService.getToken();
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('https://warehouse.z8tech.one/Backend/public/api/import'),
-    );
-    request.headers['Authorization'] = 'Bearer $token';
-    request.headers['Content-type'] = 'Application/json';
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        _selectedFile?.bytes ?? [],
-        filename: _selectedFile?.name,
-      ),
-    );
+    try {
+      // Read the CSV file
+      String csvString = String.fromCharCodes(_selectedFile!.bytes!);
 
-    print('Selected file name: ${_selectedFile?.name}');
+      // Parse the CSV string
+      List<List<dynamic>> csvDataList =
+          const CsvToListConverter().convert(csvString);
 
-    print('Import request: $request');
+      // Convert the parsed CSV data to a list of maps
+      List<Map<String, dynamic>> jsonDataList = [];
 
-    final response = await request.send();
+      for (List<dynamic> row in csvDataList) {
+        Map<String, dynamic> rowData = {
+          'id': row[0],
+          'field1': row[1],
+          'field2': row[2],
+          'field3': row[3],
+          'name': row[4],
+          // Add other fields as necessary
+        };
+        jsonDataList.add(rowData);
+      }
 
-    print('Import response body: ${await response.stream.bytesToString()}');
-    print('Import response headers: ${response.headers}');
+      // Convert list of maps to JSON
+      String jsonData = json.encode(jsonDataList);
 
-    setState(() {
-      _isImportingProducts = false;
-    });
-
-    if (response.statusCode == 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imported successfully')),
+      final token = await AuthService.getToken();
+      final response = await http.post(
+        Uri.parse('https://warehouse.z8tech.one/Backend/public/api/import'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonData,
       );
-    } else if (response.statusCode == 500) {
+
+      setState(() {
+        _isImportingProducts = false;
+      });
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Imported successfully')),
+        );
+      } else if (response.statusCode == 500) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Internal Server Error')),
+        );
+      } else {
+        final errorBody = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${errorBody['message']}')),
+        );
+      }
+    } catch (e) {
+      print('Error importing products: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Internal Server Error')),
+        const SnackBar(content: Text('Error importing products')),
       );
-    } else {
-      final errorBody = await response.stream.bytesToString();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $errorBody')),
-      );
+    } finally {
+      setState(() {
+        _isImportingProducts = false;
+      });
     }
   }
 
@@ -181,9 +209,26 @@ class _ExportImportPageState extends State<ExportImportPage> {
                         type: FileType.custom,
                         allowedExtensions: ['csv'],
                       );
-                      if (result != null) {
+                      if (result != null && result.files.isNotEmpty) {
+                        // Retrieve the first selected file
+                        final selectedFile = result.files.first;
+
+                        // Read the file as a byte list
+                        final List<int> fileBytes =
+                            await File(selectedFile.path!).readAsBytes();
+
                         setState(() {
-                          _selectedFile = result.files.single;
+                          // Convert List<int> to Uint8List
+                          final Uint8List uint8FileBytes =
+                              Uint8List.fromList(fileBytes);
+
+                          // Create a new PlatformFile object with updated bytes
+                          _selectedFile = PlatformFile(
+                            name: selectedFile.name,
+                            size: selectedFile.size,
+                            path: selectedFile.path,
+                            bytes: uint8FileBytes,
+                          );
                         });
                       }
                     },
@@ -194,6 +239,7 @@ class _ExportImportPageState extends State<ExportImportPage> {
                     icon: const Icon(Icons.upload_file),
                     label: const Text('Choose File'),
                   ),
+
                   const SizedBox(width: 16),
                   SizedBox(
                     width: 120,

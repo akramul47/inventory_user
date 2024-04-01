@@ -105,7 +105,7 @@ class _AddItemPageState extends State<AddItemPage> {
       _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
     }
   }
-  
+
   Future<void> _getImage(ImageSource source) async {
     List<XFile> pickedFiles = [];
 
@@ -228,8 +228,6 @@ class _AddItemPageState extends State<AddItemPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
-                
-          
 
           print('_imageFiles length: ${_imageFiles.length}');
           if (_imageFiles.isNotEmpty) {
@@ -262,10 +260,11 @@ class _AddItemPageState extends State<AddItemPage> {
     print('Entering _updateProductImages');
 
     final uri = Uri.parse(
-        'https://warehouse.z8tech.one/Backend/public/products/update/image/$productId');
+        'https://warehouse.z8tech.one/Backend/public/api/products/app/update/image/$productId');
     final request = http.MultipartRequest('POST', uri);
     request.fields['_method'] = 'PUT'; // Set the request method to PUT
     request.headers['Authorization'] = 'Bearer $token';
+    request.headers['Content-type'] = 'Application/json';
 
     try {
       // Handle image files
@@ -446,6 +445,58 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
+  List<int> deletedImageIds = [];
+
+  Future<void> _deleteImage(int productImageId) async {
+    final token = await AuthService.getToken();
+    final productId = widget.product?.id;
+
+    print('Image ID: ${productImageId}');
+    print('Product ID: ${productId}');
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+            'https://warehouse.z8tech.one/Backend/public/api/products/app/update/image/$productId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-type': 'Appication/json'
+        },
+        body: jsonEncode({
+          '_method': 'PUT',
+          'imageId': productImageId,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData['status'] == true) {
+        // Image deleted successfully
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image deleted successfully')),
+        );
+
+        // Add the image ID to the list of deleted image IDs
+        setState(() {
+          deletedImageIds.add(productImageId);
+        });
+      } else {
+        // Image deletion failed
+        final errorMessage =
+            responseData['message'] as String? ?? 'Failed to delete image';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } catch (e) {
+      // Error occurred
+      print('Error deleting image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('An error occurred')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final itemProvider = Provider.of<ProductProvider>(context);
@@ -486,7 +537,7 @@ class _AddItemPageState extends State<AddItemPage> {
                   ),
                 ),
                 const SizedBox(height: 16.0),
-                // Existing images
+                // Existing images with delete buttons
                 if (widget.product != null &&
                     widget.product!.imageUrls.isNotEmpty)
                   GridView.builder(
@@ -500,10 +551,37 @@ class _AddItemPageState extends State<AddItemPage> {
                     ),
                     itemCount: widget.product!.imageUrls.length,
                     itemBuilder: (context, index) {
-                      return Image.network(
-                        widget.product!.imageUrls[index],
-                        fit: BoxFit.cover,
-                      );
+                      final imageUrl = widget.product!.imageUrls[index];
+                      final productImageId =
+                          widget.product!.productImages[index].id;
+
+                      if (deletedImageIds.contains(productImageId)) {
+                        // If the image ID is in the list of deleted image IDs, display an empty placeholder
+                        return Container(); // or any placeholder widget you want to show
+                      } else {
+                        // Otherwise, display the image
+                        return Stack(
+                          children: [
+                            Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                            Positioned(
+                              top: -2,
+                              right: 20,
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Pallete.primaryRed,
+                                ),
+                                onPressed: () {
+                                  _deleteImage(productImageId);
+                                },
+                              ),
+                            ),
+                          ],
+                        );
+                      }
                     },
                   ),
                 const SizedBox(

@@ -18,6 +18,7 @@ class Product {
   final String imageUrl;
   final String warehouseTag;
   final List<String> imageUrls;
+  final List<ProductImage> images;
 
   Product({
     required this.id,
@@ -37,8 +38,11 @@ class Product {
     required this.imageUrls,
     this.updatedAt,
     this.description,
+    required this.images,
   });
 
+  List<ProductImage> get productImages => images;
+  
   factory Product.fromJson(Map<String, dynamic> json) {
     List<String> images = [];
     if (json['product_images'] != null) {
@@ -77,6 +81,9 @@ class Product {
               ? json['warehouse']['name'].toString()
               : '', // Handle null value for warehouseTag
       imageUrls: images,
+      images: (json['product_images'] as List)
+          .map((imageJson) => ProductImage.fromJson(imageJson))
+          .toList(),
     );
   }
 

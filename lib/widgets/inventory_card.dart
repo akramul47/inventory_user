@@ -134,6 +134,14 @@ class _MyCardWidgetState extends State<MyCardWidget> {
   }
 
   Widget _buildLoadingIndicator(BuildContext context) {
+    final itemProvider = Provider.of<ProductProvider>(context);
+    final loadedProducts = itemProvider.products.length;
+
+    // If all products have been loaded, don't show the loading indicator
+    if (loadedProducts >= itemProvider.totalProducts) {
+      return SizedBox.shrink();
+    }
+
     return const Padding(
       padding: EdgeInsets.all(16.0),
       child: Row(
@@ -159,4 +167,5 @@ class _MyCardWidgetState extends State<MyCardWidget> {
       ),
     );
   }
+
 }
