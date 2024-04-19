@@ -106,7 +106,7 @@ class SearchFromBarcode {
                 'Error',
                 style: TextStyle(color: Pallete.primaryRed),
               ),
-              content: Text('Failed to fetch product details.'),
+              content: Text('Product not found.'),
               actions: [
                 TextButton(
                   onPressed: () {
