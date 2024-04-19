@@ -144,34 +144,34 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> saveProductsToLocal(List<Product> products) async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final List<String> productsJsonStrings =
-          products.map((product) => jsonEncode(product.toJson())).toList();
-      await prefs.setStringList('products', productsJsonStrings);
-    } catch (e) {
-      // print('Error updating local storage: $e');
-      throw Exception('Failed to update local storage');
-    }
-  }
+  // Future<void> saveProductsToLocal(List<Product> products) async {
+  //   try {
+  //     final SharedPreferences prefs = await SharedPreferences.getInstance();
+  //     final List<String> productsJsonStrings =
+  //         products.map((product) => jsonEncode(product.toJson())).toList();
+  //     await prefs.setStringList('products', productsJsonStrings);
+  //   } catch (e) {
+  //     // print('Error updating local storage: $e');
+  //     throw Exception('Failed to update local storage');
+  //   }
+  // }
 
-  Future<void> loadProductsFromLocal() async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final List<String>? productsJsonStrings = prefs.getStringList('products');
-      if (productsJsonStrings != null) {
-        _products = productsJsonStrings
-            .map((jsonString) => Product.fromJson(
-                jsonDecode(jsonString) as Map<String, dynamic>))
-            .toList();
-        notifyListeners();
-      }
-    } catch (e) {
-      // print('Error loading products from local storage: $e');
-      throw Exception('Failed to load products from local storage');
-    }
-  }
+  // Future<void> loadProductsFromLocal() async {
+  //   try {
+  //     final SharedPreferences prefs = await SharedPreferences.getInstance();
+  //     final List<String>? productsJsonStrings = prefs.getStringList('products');
+  //     if (productsJsonStrings != null) {
+  //       _products = productsJsonStrings
+  //           .map((jsonString) => Product.fromJson(
+  //               jsonDecode(jsonString) as Map<String, dynamic>))
+  //           .toList();
+  //       notifyListeners();
+  //     }
+  //   } catch (e) {
+  //     // print('Error loading products from local storage: $e');
+  //     throw Exception('Failed to load products from local storage');
+  //   }
+  // }
 
   Future<void> updateProduct({
     required int id,
