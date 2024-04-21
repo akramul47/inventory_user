@@ -12,7 +12,7 @@ const String baseUrl = 'https://warehouse.z8tech.one/Backend/public/api';
 const String baseUrlWithoutApi = 'https://warehouse.z8tech.one/Backend/public';
 
 class ProductProvider extends ChangeNotifier {
-  List<Product> _products = [];
+  final List<Product> _products = [];
   List<Warehouse> _warehouses = [];
   List<Category> _categories = [];
   List<Brand> _brands = [];
@@ -25,6 +25,7 @@ class ProductProvider extends ChangeNotifier {
   List<Brand> get brands => _brands;
   int get currentPage => _currentPage;
   int get totalProducts => _totalProducts;
+  
 
   // Setters or methods
   void clearProducts() {
@@ -38,13 +39,28 @@ class ProductProvider extends ChangeNotifier {
   Future<void> logoutUser() async {
     try {
       // Remove the token from local storage
-      await AuthService.removeToken();
+      // await AuthService.removeToken();
 
       // Notify the AuthProvider about the logout
       final authProvider = Provider.of<AuthProvider>(
           navigatorKey.currentContext!,
           listen: false);
       await authProvider.logout();
+
+      // Clear all product-related data in memory
+      _products.clear();
+      _warehouses.clear();
+      _categories.clear();
+      _brands.clear();
+      _currentPage = 0;
+      _totalProducts = 0;
+
+      // Clear data from SharedPreferences
+      // final prefs = await SharedPreferences.getInstance();
+      // await prefs.clear();
+
+      // Notify listeners about the data changes
+      notifyListeners();
     } catch (e) {
       // print('Error during logout: $e');
     }
@@ -63,9 +79,10 @@ class ProductProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> productsData = responseData['products']['data'];
-
+        print(productsData);
+        
         // Update totalProducts with the total count from API response
-        _totalProducts = responseData['total'];
+        _totalProducts = responseData['products']['total'];
 
         final List<Product> nextPageProducts = productsData.map((data) {
           final product = Product.fromJson(data);
@@ -109,22 +126,15 @@ class ProductProvider extends ChangeNotifier {
   Future<void> loadMoreProducts() async {
     try {
       final nextPage = _currentPage + 1;
-
-      // If it's the first page, load it directly
-      if (_currentPage == 0) {
-        final nextPageData = await fetchProductsByPage(nextPage);
-        final List<Product> nextPageProducts = nextPageData['products'];
-        final nextPageUrl = nextPageData['next_page_url'];
-        _products.addAll(nextPageProducts);
-        _currentPage = nextPage;
-        notifyListeners();
-        return;
-      }
-
-      // If it's not the first page, check if next_page_url is null
       final nextPageData = await fetchProductsByPage(nextPage);
       final List<Product> nextPageProducts = nextPageData['products'];
       final nextPageUrl = nextPageData['next_page_url'];
+
+      // Otherwise, continue loading
+      _products.addAll(nextPageProducts);
+      _currentPage = nextPage;
+
+      notifyListeners();
 
       // Check if next_page_url is null
       if (nextPageUrl == null) {
@@ -132,13 +142,9 @@ class ProductProvider extends ChangeNotifier {
         return;
       }
 
-      // Otherwise, continue loading
-      _products.addAll(nextPageProducts);
-      _currentPage = nextPage;
-
       // You can choose to save to local storage here if needed
 
-      notifyListeners();
+      
     } catch (e) {
       // print('Error loading more products: $e');
     }
@@ -190,10 +196,10 @@ class ProductProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         // Update local data
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        final Product updatedProduct =
-            Product.fromJson(responseData['product']);
-        updateProductLocally(updatedProduct);
+        // final Map<String, dynamic> responseData = jsonDecode(response.body);
+        // final Product updatedProduct =
+        //     Product.fromJson(responseData['product']);
+        // updateProductLocally(updatedProduct);
       } else {
         throw Exception('Failed to update product: ${response.statusCode}');
       }
@@ -203,14 +209,14 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  void updateProductLocally(Product updatedProduct) {
-    final index =
-        _products.indexWhere((product) => product.id == updatedProduct.id);
-    if (index != -1) {
-      _products[index] = updatedProduct;
-      notifyListeners();
-    }
-  }
+  // void updateProductLocally(Product updatedProduct) {
+  //   final index =
+  //       _products.indexWhere((product) => product.id == updatedProduct.id);
+  //   if (index != -1) {
+  //     _products[index] = updatedProduct;
+  //     notifyListeners();
+  //   }
+  // }
 
   Future<List<Warehouse>> fetchWarehouses(
       {bool forceRefresh = false, String? token}) async {

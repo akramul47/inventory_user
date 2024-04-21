@@ -11,6 +11,7 @@ import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({
@@ -58,10 +59,12 @@ class _AddItemPageState extends State<AddItemPage> {
   Brand? _selectedBrand;
   bool _isSaving = false;
   String? _barcodeError;
+  String _userRole = '';
 
   @override
   void initState() {
     super.initState();
+    _getUserRole();
     final itemProvider = Provider.of<ProductProvider>(context, listen: false);
     final warehouses = itemProvider.warehouses;
     if (widget.isUpdatingItem && widget.product != null) {
@@ -101,9 +104,15 @@ class _AddItemPageState extends State<AddItemPage> {
       _nameController.text = widget.initialName ?? '';
       _descriptionController.text = widget.initialDescription ?? '';
       _retailPriceController.text = widget.initialRetailPrice ?? '';
-      _salePriceController.text = widget.initialSalePrice ?? '';
+      _salePriceController.text = widget.initialSalePrice ?? '0.0';
       _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
     }
+  }
+
+  Future<void> _getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final roleString = prefs.getString('role') ?? '';
+    _userRole = roleString.toLowerCase();
   }
 
   Future<void> _getImage(ImageSource source) async {
@@ -209,14 +218,14 @@ class _AddItemPageState extends State<AddItemPage> {
         request.fields['product_sale_price'] = _salePriceController.text.trim();
         request.fields['scan_code'] = _barcodeController.text.trim();
 
-        // print('Request Headers: ${request.headers}');
-        // print('Request Fields: ${request.fields}');
+        print('Request Headers: ${request.headers}');
+        print('Request Fields: ${request.fields}');
 
         final streamedResponse = await request.send();
         final response = await http.Response.fromStream(streamedResponse);
 
-        // print('Response status code: ${response.statusCode}');
-        // print('Response body: ${response.body}');
+        print('Response status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
 
         final responseData = jsonDecode(response.body);
 
@@ -362,17 +371,17 @@ class _AddItemPageState extends State<AddItemPage> {
         }
       }
 
-      // Print the request payload
-      // print('Request payload:');
-      // print('Headers: ${request.headers}');
-      // print('Fields: ${request.fields}');
-      // print('Files: ${request.files.map((file) => file.field)}');
+      //Print the request payload
+      print('Request payload:');
+      print('Headers: ${request.headers}');
+      print('Fields: ${request.fields}');
+      print('Files: ${request.files.map((file) => file.field)}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      // print('Response status code: ${response.statusCode}');
-      // print('Response body: ${response.body}');
+      print('Response status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
 
       final responseData = jsonDecode(response.body);
 
@@ -386,8 +395,8 @@ class _AddItemPageState extends State<AddItemPage> {
         Navigator.pop(context);
       } else {
         // Product save failed
-        String errorMessage =
-            responseData['message'] as String? ?? 'Failed to save product';
+        String errorMessage = responseData['errors']['scan_code']?.first ??
+            'Failed to save product';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage)),
         );
@@ -674,14 +683,8 @@ class _AddItemPageState extends State<AddItemPage> {
                 TextFormField(
                   controller: _salePriceController,
                   decoration: const InputDecoration(
-                    labelText: 'Sale Price',
+                    labelText: 'Sold Price',
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a sale price';
-                    }
-                    return null;
-                  },
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                 ),

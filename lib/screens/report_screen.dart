@@ -89,170 +89,168 @@ class _ReportPageState extends State<ReportPage> {
         ),
         backgroundColor: Pallete.primaryRed,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              const Text(
-                'Select Warehouse',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<Warehouse>(
-                value: _selectedWarehouse,
-                hint: const Text('Select Warehouse'),
-                items: warehouses.map((warehouse) {
-                  return DropdownMenuItem<Warehouse>(
-                    value: warehouse,
-                    child: Text(warehouse.name),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedWarehouse = value; // Set selected warehouse
-                  });
-                },
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select a warehouse';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Select Date Range',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final selectedDate = await showDatePicker(
-                          context: context,
-                          initialDate: _startDate ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                        );
-                        if (selectedDate != null) {
-                          setState(() {
-                            _startDate = selectedDate;
-                          });
-                        }
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          _startDate != null
-                              ? DateFormat('dd/MM/yyyy').format(_startDate!)
-                              : 'Start Date',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final selectedDate = await showDatePicker(
-                          context: context,
-                          initialDate: _endDate ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                        );
-                        if (selectedDate != null) {
-                          setState(() {
-                            _endDate = selectedDate;
-                          });
-                        }
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          _endDate != null
-                              ? DateFormat('dd/MM/yyyy').format(_endDate!)
-                              : 'End Date',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: 160,
-                height: 40,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _fetchReport,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Pallete.primaryRed.withOpacity(0.8),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Text('Generate Report'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_reportData != null)
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            const Text(
+              'Select Warehouse',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<Warehouse>(
+              value: _selectedWarehouse,
+              hint: const Text('Select Warehouse'),
+              items: warehouses.map((warehouse) {
+                return DropdownMenuItem<Warehouse>(
+                  value: warehouse,
+                  child: Text(warehouse.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedWarehouse = value; // Set selected warehouse
+                });
+              },
+              validator: (value) {
+                if (value == null) {
+                  return 'Please select a warehouse';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Select Date Range',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: _reportData!['data'].length,
-                    itemBuilder: (context, index) {
-                      final data = _reportData!['data'][index];
-                      // Customize the UI to display the report data
-                      return ListTile(
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Incoming Products: ${data['incomingProducts']}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Date: ${data['date']}',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Shift Products: ${data['shiftProducts']}',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
                       );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _startDate = selectedDate;
+                        });
+                      }
                     },
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        _startDate != null
+                            ? DateFormat('dd/MM/yyyy').format(_startDate!)
+                            : 'Start Date',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
                   ),
                 ),
-            ],
-          ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _endDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _endDate = selectedDate;
+                        });
+                      }
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        _endDate != null
+                            ? DateFormat('dd/MM/yyyy').format(_endDate!)
+                            : 'End Date',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 160,
+              height: 40,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _fetchReport,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Pallete.primaryRed.withOpacity(0.8),
+                  foregroundColor: Colors.white,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Text('Generate Report'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_reportData != null)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _reportData!['data'].length,
+                  itemBuilder: (context, index) {
+                    final data = _reportData!['data'][index];
+                    // Customize the UI to display the report data
+                    return ListTile(
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Incoming Products: ${data['incomingProducts']}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Date: ${data['date']}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Shift Products: ${data['shiftProducts']}',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ),
     );
