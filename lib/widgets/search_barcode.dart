@@ -13,7 +13,7 @@ class SearchFromBarcode {
       var result = await BarcodeScanner.scan();
       String? scannedCode = result.rawContent;
       await _fetchProductDetailsAndNavigate(context, scannedCode);
-    } on Exception catch (e) {
+    } on Exception {
       // print('Error scanning barcode: $e');
     }
   }

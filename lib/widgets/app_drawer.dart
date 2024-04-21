@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
+import 'package:inventory_user/screens/product_shift_screen.dart';
 import 'package:inventory_user/screens/report_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
@@ -18,7 +19,6 @@ class AppDrawer extends StatelessWidget {
     // Ensure that the navigation occurs after the logout
     Navigator.of(context).pushReplacementNamed('/login');
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +107,18 @@ class AppDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => const ExportImportPage()),
+              );
+            }),
+            _buildListTile(Icons.send_to_mobile_rounded, 'Shift Product', () {
+              // Close the drawer
+              Navigator.of(context).pop();
+
+              // Navigate to the ExportImportPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ShiftProductPage(),
+                ),
               );
             }),
             _buildListTile(Icons.file_copy, 'Report', () {

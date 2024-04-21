@@ -126,7 +126,7 @@ class _AddItemPageState extends State<AddItemPage> {
     } else {
       final selectedFiles = await ImagePicker().pickMultiImage();
       pickedFiles.addAll(selectedFiles);
-        }
+    }
 
     if (pickedFiles.isNotEmpty) {
       _compressAndAddFiles(pickedFiles);
@@ -241,6 +241,8 @@ class _AddItemPageState extends State<AddItemPage> {
             // print('Calling _updateProductImages');
             await _updateProductImages(productId, token);
           } else {
+            Navigator.pop(context);
+            // widget.refreshDataCallback?.call();
             // print('No new images selected or product update failed');
           }
         } else {
@@ -391,8 +393,15 @@ class _AddItemPageState extends State<AddItemPage> {
           const SnackBar(content: Text('Product saved successfully')),
         );
         // Call the _fetchData method to refresh the data
-        widget.refreshDataCallback?.call();
         Navigator.pop(context);
+        widget.refreshDataCallback?.call();
+      } else if (response.statusCode == 401 &&
+          responseData['status'] == false) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You dont have permission'),
+          ),
+        );
       } else {
         // Product save failed
         String errorMessage = responseData['errors']['scan_code']?.first ??
@@ -573,19 +582,19 @@ class _AddItemPageState extends State<AddItemPage> {
                               imageUrl,
                               fit: BoxFit.cover,
                             ),
-                            Positioned(
-                              top: -2,
-                              right: 20,
-                              child: IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Pallete.primaryRed,
-                                ),
-                                onPressed: () {
-                                  _deleteImage(productImageId);
-                                },
-                              ),
-                            ),
+                            // Positioned(
+                            //   top: -2,
+                            //   right: 20,
+                            //   child: IconButton(
+                            //     icon: const Icon(
+                            //       Icons.delete,
+                            //       color: Pallete.primaryRed,
+                            //     ),
+                            //     onPressed: () {
+                            //       _deleteImage(productImageId);
+                            //     },
+                            //   ),
+                            // ),
                           ],
                         );
                       }
@@ -685,6 +694,12 @@ class _AddItemPageState extends State<AddItemPage> {
                   decoration: const InputDecoration(
                     labelText: 'Sold Price',
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a sold price (e.g., 0.0)';
+                    }
+                    return null;
+                  },
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                 ),
