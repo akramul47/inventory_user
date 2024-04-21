@@ -36,35 +36,45 @@ class ProductProvider extends ChangeNotifier {
     _currentPage = 0;
   }
 
-  Future<void> logoutUser() async {
-    try {
-      // Remove the token from local storage
-      // await AuthService.removeToken();
-
-      // Notify the AuthProvider about the logout
-      final authProvider = Provider.of<AuthProvider>(
-          navigatorKey.currentContext!,
-          listen: false);
-      await authProvider.logout();
-
-      // Clear all product-related data in memory
-      _products.clear();
-      _warehouses.clear();
-      _categories.clear();
-      _brands.clear();
-      _currentPage = 0;
-      _totalProducts = 0;
-
-      // Clear data from SharedPreferences
-      // final prefs = await SharedPreferences.getInstance();
-      // await prefs.clear();
-
-      // Notify listeners about the data changes
-      notifyListeners();
-    } catch (e) {
-      // print('Error during logout: $e');
-    }
+  // Setters or methods
+  void clearAllData() {
+    _products.clear();
+    _warehouses.clear();
+    _categories.clear();
+    _brands.clear();
+    _currentPage = 0;
+    _totalProducts = 0;
   }
+
+  // Future<void> logoutUser() async {
+  //   try {
+  //     // Remove the token from local storage
+  //     await AuthService.removeToken();
+
+  //     // Notify the AuthProvider about the logout
+  //     final authProvider = Provider.of<AuthProvider>(
+  //         navigatorKey.currentContext!,
+  //         listen: false);
+  //     await authProvider.logout();
+
+  //     // Clear all product-related data in memory
+  //     _products.clear();
+  //     _warehouses.clear();
+  //     _categories.clear();
+  //     _brands.clear();
+  //     _currentPage = 0;
+  //     _totalProducts = 0;
+
+  //     // Clear data from SharedPreferences
+  //     final prefs = await SharedPreferences.getInstance();
+  //     await prefs.clear();
+
+  //     // Notify listeners about the data changes
+  //     notifyListeners();
+  //   } catch (e) {
+  //     // print('Error during logout: $e');
+  //   }
+  // }
 
   Future<Map<String, dynamic>> fetchProductsByPage(int page) async {
     try {
@@ -100,7 +110,9 @@ class ProductProvider extends ChangeNotifier {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         if (responseData['message'] == 'Token has expired') {
           // Token has expired, log out the user and show a snackbar
-          await logoutUser();
+          await Provider.of<AuthProvider>(navigatorKey.currentContext!,
+                  listen: false)
+              .logout();
           ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
             const SnackBar(
               content: Text('Logged out. Token expired!'),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/main.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'product_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn;
@@ -10,11 +13,26 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isLoggedIn => _isLoggedIn;
 
+  Future<void> updateLoginStatus(bool status) async {
+    _isLoggedIn = status;
+    notifyListeners();
+  }
+
+  Future<void> checkLoginStatus() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final bool loggedIn = prefs.getBool('isLoggedIn') ?? false;
+      _isLoggedIn = loggedIn;
+      notifyListeners();
+    } catch (e) {
+      // Handle error
+    }
+  }
+
   Future<void> login(String email, String password) async {
     try {
       await AuthService.login(email, password);
-      _isLoggedIn = true;
-      notifyListeners();
+      await updateLoginStatus(true);
     } catch (e) {
       // Handle login failure
       rethrow;
@@ -30,8 +48,15 @@ class AuthProvider extends ChangeNotifier {
       // Remove the token from local storage
       await AuthService.removeToken();
 
-      // Navigate to the login page
-      navigatorKey.currentState?.pushReplacementNamed('/login');
+      // Clear product-related data
+      final ProductProvider productProvider = Provider.of<ProductProvider>(
+          navigatorKey.currentContext!,
+          listen: false);
+      productProvider.clearAllData();
+      productProvider.resetCurrentPage();
+
+      // Update login status
+      await updateLoginStatus(false);
 
       // Set _isLoggedIn to false
       _isLoggedIn = false;

@@ -41,11 +41,11 @@ class MyApp extends StatelessWidget {
           darkTheme: ThemeData.dark(useMaterial3: true),
           themeMode: ThemeMode.system,
           home: authProvider.isLoggedIn
-              ? MyHomePage(title: 'Inventory+')
-              : LoginPage(),
+              ? const MyHomePage(title: 'Inventory+')
+              : const LoginPage(),
           routes: {
-            '/login': (context) => LoginPage(),
-            '/add_item': (context) => AddItemPage(),
+            '/login': (context) => const LoginPage(),
+            '/add_item': (context) => const AddItemPage(),
             // Define other routes as needed
           },
         );

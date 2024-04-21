@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
 import 'package:inventory_user/screens/report_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../providers/product_provider.dart';
 import '../screens/export_import_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -15,11 +12,13 @@ class AppDrawer extends StatelessWidget {
   const AppDrawer({Key? key, required this.navigatorKey}) : super(key: key);
 
   void _handleLogout(BuildContext context) {
-    final productProvider = Provider.of<ProductProvider>(context, listen: false);
-    productProvider.logoutUser();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.logout();
+
     // Ensure that the navigation occurs after the logout
     Navigator.of(context).pushReplacementNamed('/login');
   }
+
 
   @override
   Widget build(BuildContext context) {
