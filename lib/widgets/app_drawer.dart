@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
 import 'package:inventory_user/screens/product_shift_screen.dart';
 import 'package:inventory_user/screens/report_screen.dart';
+import 'package:inventory_user/screens/sold_report_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -121,7 +122,7 @@ class AppDrawer extends StatelessWidget {
                 ),
               );
             }),
-            _buildListTile(Icons.file_copy, 'Report', () {
+            _buildListTile(Icons.file_copy, 'General Report', () {
               // Close the drawer
               Navigator.of(context).pop();
 
@@ -130,6 +131,18 @@ class AppDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ReportPage(),
+                ),
+              );
+            }),
+            _buildListTile(Icons.sell, 'Sold Report', () {
+              // Close the drawer
+              Navigator.of(context).pop();
+
+              // Navigate to the ExportImportPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SoldReportPage(),
                 ),
               );
             }),

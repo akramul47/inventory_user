@@ -8,14 +8,14 @@ import '../providers/product_provider.dart';
 import '../services/auth_servcie.dart';
 import '../utils/pallete.dart';
 
-class ReportPage extends StatefulWidget {
-  const ReportPage({Key? key}) : super(key: key);
+class SoldReportPage extends StatefulWidget {
+  const SoldReportPage({Key? key}) : super(key: key);
 
   @override
-  State<ReportPage> createState() => _ReportPageState();
+  State<SoldReportPage> createState() => _SoldReportPageState();
 }
 
-class _ReportPageState extends State<ReportPage> {
+class _SoldReportPageState extends State<SoldReportPage> {
   Warehouse? _selectedWarehouse;
   Brand? _selectedBrand;
   Category? _selectedCategory;
@@ -48,7 +48,7 @@ class _ReportPageState extends State<ReportPage> {
       final categoryId = _selectedCategory?.id?.toString();
 
       String url =
-          'https://warehouse.z8tech.one/Backend/public/api/shifting/report/?starting_date=$startDateString&ending_date=$endDateString';
+          'http://warehouse.z8tech.one/Backend/public/api/sale/report/?starting_date=$startDateString&ending_date=$endDateString';
 
       if (warehouseId != null) {
         url += '&warehouse_id=$warehouseId';
@@ -110,7 +110,7 @@ class _ReportPageState extends State<ReportPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'General Report',
+          'Sold Report',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Pallete.primaryRed,
@@ -284,79 +284,40 @@ class _ReportPageState extends State<ReportPage> {
               ),
               const SizedBox(height: 16),
               if (_reportData != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        columns: const [
-                          DataColumn(label: Text('Product Name')),
-                          DataColumn(label: Text('Category')),
-                          DataColumn(label: Text('Brand')),
-                          DataColumn(label: Text('Add Warehouse')),
-                          DataColumn(label: Text('From Warehouse')),
-                          DataColumn(label: Text('To Warehouse')),
-                        ],
-                        rows: _reportData!['histories'].map<DataRow>(
-                          (history) {
-                            final product = history['products'];
-                            final brand = product['get_brand']['brand_name'];
-                            final category =
-                                product['get_category']['category_name'];
-                            final fromWarehouse =
-                                history['from_warehouse_id']['name'];
-                            final toWarehouse =
-                                history['to_warehouse_id']['name'];
-                            return DataRow(
-                              cells: [
-                                DataCell(Text(product['product_name'])),
-                                DataCell(Text(category)),
-                                DataCell(Text(brand)),
-                                DataCell(Text(fromWarehouse)),
-                                DataCell(Text(fromWarehouse)),
-                                DataCell(Text(toWarehouse)),
-                              ],
-                            );
-                          },
-                        ).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 200, // Adjust the height as needed
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: _reportData!['data'].length,
-                        itemBuilder: (context, index) {
-                          final data = _reportData!['data'][index];
-                          return ListTile(
-                            title: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Incoming Products: ${data['incomingProducts']}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('Product Name')),
+                      DataColumn(label: Text('Scan Code')),
+                      DataColumn(label: Text('Warehouse')),
+                      DataColumn(label: Text('Product Price')),
+                      DataColumn(label: Text('Sold Price')),
+                      DataColumn(label: Text('Sold Date')),
+                    ],
+                    rows: _reportData!['data']['data'].map<DataRow>(
+                      (data) {
+                        final product = data['products'];
+                        final warehouseName = product['warehouse']['name'];
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(product['product_name'])),
+                            DataCell(Text(product['scan_code'])),
+                            DataCell(Text(warehouseName)),
+                            DataCell(Text(product['product_retail_price'])),
+                            DataCell(Text(data['product_sold_price'])),
+                            DataCell(
+                              Text(
+                                DateFormat('dd/MM/yyyy').format(
+                                  DateTime.parse(data['updated_at']),
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Date: ${data['date']}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Shift Products: ${data['shiftProducts']}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                              ],
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                          ],
+                        );
+                      },
+                    ).toList(),
+                  ),
                 ),
             ],
           ),
