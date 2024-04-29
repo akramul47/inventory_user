@@ -49,7 +49,7 @@ class BarcodeHelper {
         );
       }
     } on Exception catch (e) {
-      print('Error scanning barcode: $e');
+      // print('Error scanning barcode: $e');
     }
   }
 
@@ -73,8 +73,8 @@ class BarcodeHelper {
         return Product.fromJson(productData);
       } else {
         // Handle error - Failed to fetch product details
-        print(
-            'Failed to fetch product details. Status Code: ${response.statusCode}');
+        // print(
+        //     'Failed to fetch product details. Status Code: ${response.statusCode}');
         return null;
       }
     }

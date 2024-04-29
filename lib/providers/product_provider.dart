@@ -89,7 +89,7 @@ class ProductProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> productsData = responseData['products']['data'];
-        print(productsData);
+        // print(productsData);
         
         // Update totalProducts with the total count from API response
         _totalProducts = responseData['products']['total'];

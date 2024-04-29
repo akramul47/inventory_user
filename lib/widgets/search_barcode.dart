@@ -102,17 +102,17 @@ class SearchFromBarcode {
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: Text(
+              title: const Text(
                 'Error',
                 style: TextStyle(color: Pallete.primaryRed),
               ),
-              content: Text('Product not found.'),
+              content: const Text('Product not found.'),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text('OK'),
+                  child: const Text('OK'),
                 ),
               ],
             );

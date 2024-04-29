@@ -133,7 +133,7 @@ class _AddItemPageState extends State<AddItemPage> {
     } else {
       // Show a snackbar if no image is selected
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No image selected')),
+        const SnackBar(content: Text('No image selected')),
       );
     }
   }
@@ -218,14 +218,14 @@ class _AddItemPageState extends State<AddItemPage> {
         request.fields['product_sale_price'] = _salePriceController.text.trim();
         request.fields['scan_code'] = _barcodeController.text.trim();
 
-        print('Request Headers: ${request.headers}');
-        print('Request Fields: ${request.fields}');
+        // print('Request Headers: ${request.headers}');
+        // print('Request Fields: ${request.fields}');
 
         final streamedResponse = await request.send();
         final response = await http.Response.fromStream(streamedResponse);
 
-        print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        // print('Response status code: ${response.statusCode}');
+        // print('Response body: ${response.body}');
 
         final responseData = jsonDecode(response.body);
 
@@ -374,16 +374,16 @@ class _AddItemPageState extends State<AddItemPage> {
       }
 
       //Print the request payload
-      print('Request payload:');
-      print('Headers: ${request.headers}');
-      print('Fields: ${request.fields}');
-      print('Files: ${request.files.map((file) => file.field)}');
+      // print('Request payload:');
+      // print('Headers: ${request.headers}');
+      // print('Fields: ${request.fields}');
+      // print('Files: ${request.files.map((file) => file.field)}');
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
-      print('Response status code: ${response.statusCode}');
-      print('Response body: ${response.body}');
+      // print('Response status code: ${response.statusCode}');
+      // print('Response body: ${response.body}');
 
       final responseData = jsonDecode(response.body);
 
