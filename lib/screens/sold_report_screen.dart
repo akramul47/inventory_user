@@ -72,7 +72,6 @@ class _SoldReportPageState extends State<SoldReportPage> {
       });
 
       if (response.statusCode == 200) {
-        print(response.body);
         final data = jsonDecode(response.body);
         if (data['status'] == true) {
           setState(() {
