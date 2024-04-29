@@ -101,7 +101,7 @@ class _AddItemPageState extends State<AddItemPage> {
       // print('Selected Brand ID: $_selectedBrandId');
     } else {
       _barcodeController.text = widget.initialQRCode ?? '';
-      _nameController.text = widget.initialQRCode ?? '';
+      _nameController.text = widget.initialQRCode ?? ''; // Show same as Barcode
       _descriptionController.text = widget.initialDescription ?? '';
       _retailPriceController.text = widget.initialRetailPrice ?? '';
       _salePriceController.text = widget.initialSalePrice ?? '0.0';

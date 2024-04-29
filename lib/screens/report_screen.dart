@@ -124,7 +124,7 @@ class _ReportPageState extends State<ReportPage> {
             children: [
               const SizedBox(height: 10),
               const Text(
-                'Select Warehouse (Optional)',
+                'Select Warehouse',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -145,7 +145,7 @@ class _ReportPageState extends State<ReportPage> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Select Brand (Optional)',
+                'Select Brand',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -166,7 +166,7 @@ class _ReportPageState extends State<ReportPage> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Select Category (Optional)',
+                'Select Category',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
