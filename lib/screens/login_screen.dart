@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
+import 'package:inventory_user/screens/dashboard/admin_dashboard_screen.dart';
 import 'package:inventory_user/screens/home_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:inventory_user/widgets/gradient_button.dart';
@@ -43,18 +44,11 @@ class _LoginPageState extends State<LoginPage> {
 
       if (_isLogin) {
         // Login Logic
-        if (_isAdmin) {
-          // Admin Login - For now, same as user login but we could add specific checks
-          // or redirect to a different dashboard
-          await authProvider.login(
-              emailController.text, passwordController.text);
-          // Check role if needed, but for now assume success means access
-          // In real app, check if user.role == 'admin'
-        } else {
-          // User Login
-          await authProvider.login(
-              emailController.text, passwordController.text);
-        }
+        await authProvider.login(
+          emailController.text,
+          passwordController.text,
+          isAdmin: _isAdmin,
+        );
       } else {
         // Registration Logic (User only, Admins usually created by other admins)
         if (_isAdmin) {
@@ -71,11 +65,10 @@ class _LoginPageState extends State<LoginPage> {
 
       // Navigate based on role/mode
       if (_isAdmin) {
-        // Navigate to Admin Dashboard (to be implemented)
-        // For now, just go to Home but show a message
+        // Navigate to Admin Dashboard
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const MyHomePage(title: 'Inventory+ Admin'),
+            builder: (context) => const AdminDashboardScreen(),
           ),
         );
       } else {

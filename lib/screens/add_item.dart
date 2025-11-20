@@ -51,9 +51,9 @@ class _AddItemPageState extends State<AddItemPage> {
   final _quantityController = TextEditingController();
   final _retailPriceController = TextEditingController();
   final _salePriceController = TextEditingController();
-  int? _selectedWarehouseId;
-  int? _selectedCategoryId;
-  int? _selectedBrandId;
+  String? _selectedWarehouseId;
+  String? _selectedCategoryId;
+  String? _selectedBrandId;
   Warehouse? _selectedWarehouse;
   Category? _selectedCategory;
   Brand? _selectedBrand;
@@ -76,18 +76,26 @@ class _AddItemPageState extends State<AddItemPage> {
       _salePriceController.text = widget.product!.salePrice.toString();
       _selectedWarehouse = warehouses.isNotEmpty
           ? warehouses.firstWhere(
-              (warehouse) =>
-                  warehouse.id == int.parse(widget.product!.warehouseId),
+              (warehouse) => warehouse.id == widget.product!.warehouseId,
               orElse: () => warehouses.first,
             )
-          : Warehouse(id: 0, name: 'Default Warehouse');
-      _selectedWarehouseId = int.parse(widget.product!.warehouseId);
-      _selectedCategory = itemProvider.categories
-          .firstWhere((category) => category.id == widget.product!.categoryId);
-      _selectedCategoryId = widget.product!.categoryId;
-      _selectedBrand = itemProvider.brands
-          .firstWhere((brand) => brand.id == widget.product!.brandId);
-      _selectedBrandId = widget.product!.brandId;
+          : Warehouse(id: '0', name: 'Default Warehouse');
+      _selectedWarehouseId = widget.product!.warehouseId;
+      _selectedCategory = itemProvider.categories.isNotEmpty
+          ? itemProvider.categories.firstWhere(
+              (category) =>
+                  category.id == widget.product!.categoryId.toString(),
+              orElse: () => itemProvider.categories.first,
+            )
+          : null;
+      _selectedCategoryId = widget.product!.categoryId.toString();
+      _selectedBrand = itemProvider.brands.isNotEmpty
+          ? itemProvider.brands.firstWhere(
+              (brand) => brand.id == widget.product!.brandId.toString(),
+              orElse: () => itemProvider.brands.first,
+            )
+          : null;
+      _selectedBrandId = widget.product!.brandId.toString();
 
       // Print statements for debugging
       // print('Barcode: ${_barcodeController.text}');
@@ -105,7 +113,7 @@ class _AddItemPageState extends State<AddItemPage> {
       _descriptionController.text = widget.initialDescription ?? '';
       _retailPriceController.text = widget.initialRetailPrice ?? '';
       _salePriceController.text = widget.initialSalePrice ?? '0.0';
-      _selectedWarehouseId = int.tryParse(widget.initialWarehouseTag ?? '');
+      _selectedWarehouseId = widget.initialWarehouseTag;
     }
   }
 

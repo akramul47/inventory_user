@@ -11,10 +11,13 @@ class AuthProvider extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   bool _isLoggedIn;
+  String? _userRole; // 'admin' or 'user'
 
   AuthProvider(this._isLoggedIn);
 
   bool get isLoggedIn => _isLoggedIn;
+  String? get userRole => _userRole;
+  bool get isAdmin => _userRole == 'admin';
 
   Future<void> updateLoginStatus(bool status) async {
     _isLoggedIn = status;
@@ -25,17 +28,33 @@ class AuthProvider extends ChangeNotifier {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       final bool loggedIn = prefs.getBool('isLoggedIn') ?? false;
+      final String? role = prefs.getString('userRole');
       _isLoggedIn = loggedIn;
+      _userRole = role;
       notifyListeners();
     } catch (e) {
       // Handle error
     }
   }
 
+  /// Set user role (used during app initialization)
+  void setRole(String role) {
+    _userRole = role;
+    notifyListeners();
+  }
+
   /// Login with email and password
-  Future<void> login(String email, String password) async {
+  Future<void> login(String email, String password,
+      {bool isAdmin = false}) async {
     try {
       await _authApiService.login(email, password);
+
+      // Save role
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      final String role = isAdmin ? 'admin' : 'user';
+      await prefs.setString('userRole', role);
+      _userRole = role;
+
       await updateLoginStatus(true);
     } catch (e) {
       print('Login failed: $e');

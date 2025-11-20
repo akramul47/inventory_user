@@ -43,8 +43,9 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   String _getCategoryName(int categoryId) {
     final provider = Provider.of<ProductProvider>(context, listen: false);
     try {
-      final category = provider.categories.firstWhere((c) => c.id == categoryId,
-          orElse: () => Category(id: 0, name: 'Unknown'));
+      final category = provider.categories.firstWhere(
+          (c) => c.id == categoryId.toString(),
+          orElse: () => Category(id: '0', name: 'Unknown'));
       return category.name;
     } catch (e) {
       return 'Unknown';

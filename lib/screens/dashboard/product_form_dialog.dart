@@ -23,9 +23,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   late TextEditingController _barcodeController;
   late TextEditingController _uniqueCodeController;
 
-  int? _selectedWarehouseId;
-  int? _selectedCategoryId;
-  int? _selectedBrandId;
+  String? _selectedWarehouseId;
+  String? _selectedCategoryId;
+  String? _selectedBrandId;
   bool _isLoading = false;
 
   @override
@@ -44,9 +44,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     _uniqueCodeController = TextEditingController(text: p?.uniqueCode ?? '');
 
     if (p != null) {
-      _selectedWarehouseId = int.tryParse(p.warehouseId);
-      _selectedCategoryId = p.categoryId;
-      _selectedBrandId = p.brandId;
+      _selectedWarehouseId = p.warehouseId;
+      _selectedCategoryId = p.categoryId.toString();
+      _selectedBrandId = p.brandId.toString();
     }
   }
 
@@ -202,7 +202,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDropdown<int>(
+                      child: _buildDropdown<String>(
                         value: _selectedWarehouseId,
                         items: provider.warehouses
                             .map((e) => DropdownMenuItem(
@@ -217,7 +217,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildDropdown<int>(
+                      child: _buildDropdown<String>(
                         value: _selectedCategoryId,
                         items: provider.categories
                             .map((e) => DropdownMenuItem(
@@ -232,7 +232,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildDropdown<int>(
+                      child: _buildDropdown<String>(
                         value: _selectedBrandId,
                         items: provider.brands
                             .map((e) => DropdownMenuItem(

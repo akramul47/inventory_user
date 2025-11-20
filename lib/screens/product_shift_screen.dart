@@ -21,7 +21,7 @@ class _ShiftProductPageState extends State<ShiftProductPage> {
   bool _isLoading = false;
   List<Product> _products = [];
 
-  Future<void> _fetchProducts(int warehouseId) async {
+  Future<void> _fetchProducts(String warehouseId) async {
     setState(() {
       _isLoading = true;
       _products = [];

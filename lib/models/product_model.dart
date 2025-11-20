@@ -1,7 +1,6 @@
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/utils/api_constants.dart';
 
-
 class Product {
   final int id;
   final String warehouseId;
@@ -44,22 +43,32 @@ class Product {
   });
 
   List<ProductImage> get productImages => images;
-  
+
+  // Convenience getters
+  double get price => salePrice;
+  String get sku => uniqueCode;
+  String get category => 'Category $categoryId';
+  String get brand => 'Brand $brandId';
+  String get warehouse => warehouseTag;
+
   factory Product.fromJson(Map<String, dynamic> json) {
     List<String> images = [];
     if (json['product_images'] != null) {
-      images = List<String>.from(json['product_images'].map(
-          (imageJson) => '${ApiConstants.BASE_URL_WITHOUT_API}/${imageJson['image'] ?? ''}'));
+      images = List<String>.from(json['product_images'].map((imageJson) =>
+          '${ApiConstants.BASE_URL_WITHOUT_API}/${imageJson['image'] ?? ''}'));
     }
 
     return Product(
       id: int.parse(json['id'].toString()), // Handle null value for id
       warehouseId: json['warehouse_id'] != null
           ? json['warehouse_id'].toString()
-          : '', // Handle null value for warehouse_id
-      categoryId: int.parse(
-          json['category_id'].toString()), // Parse categoryId to integer
-      brandId: int.parse(json['brand_id'].toString()),
+          : '1', // Default to warehouse ID 1 if not set
+      categoryId: json['category_id'] != null
+          ? int.tryParse(json['category_id'].toString()) ?? 1
+          : 1, // Default to category ID 1 if not set
+      brandId: json['brand_id'] != null
+          ? int.tryParse(json['brand_id'].toString()) ?? 1
+          : 1, // Default to brand ID 1 if not set
       name: json['product_name'] ?? '',
       uniqueCode: json['unique_code'] ?? '',
       barcode: json['scan_code'] ?? '',
@@ -81,11 +90,14 @@ class Product {
       warehouseTag:
           json['warehouse'] != null && json['warehouse']['name'] != null
               ? json['warehouse']['name'].toString()
-              : '', // Handle null value for warehouseTag
+              : 'Default', // Default to "Default" if warehouse not set
       imageUrls: images,
-      images: (json['product_images'] as List)
-          .map((imageJson) => ProductImage.fromJson(imageJson))
-          .toList(),
+      images: json['product_images'] != null &&
+              (json['product_images'] as List).isNotEmpty
+          ? (json['product_images'] as List)
+              .map((imageJson) => ProductImage.fromJson(imageJson))
+              .toList()
+          : [], // Default to empty list if no images
     );
   }
 
@@ -113,31 +125,35 @@ class Product {
 }
 
 class Category {
-  final int id;
+  final String id;
   final String name;
+  final String? description;
 
   Category({
     required this.id,
     required this.name,
+    this.description,
   });
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['id'] ?? 0,
-      name: json['category_name'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '0',
+      name: json['category_name'] ?? json['name'] ?? '',
+      description: json['description'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'category_name': name,
+      if (description != null) 'description': description,
     };
   }
 }
 
 class Warehouse {
-  final int id;
+  final String id;
   final String name;
 
   Warehouse({
@@ -147,39 +163,43 @@ class Warehouse {
 
   factory Warehouse.fromJson(Map<String, dynamic> json) {
     return Warehouse(
-      id: json['id'] ?? 0,
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '0',
       name: json['name'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'name': name,
     };
   }
 }
 
 class Brand {
-  final int id;
+  final String id;
   final String name;
+  final String? description;
 
   Brand({
     required this.id,
     required this.name,
+    this.description,
   });
 
   factory Brand.fromJson(Map<String, dynamic> json) {
     return Brand(
-      id: json['id'] ?? 0,
-      name: json['brand_name'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '0',
+      name: json['brand_name'] ?? json['name'] ?? '',
+      description: json['description'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      '_id': id,
       'brand_name': name,
+      if (description != null) 'description': description,
     };
   }
 }

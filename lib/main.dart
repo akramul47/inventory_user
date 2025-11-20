@@ -2,23 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
+import 'package:inventory_user/screens/dashboard/admin_dashboard_screen.dart';
 import 'package:inventory_user/screens/home_screen.dart';
 import 'package:inventory_user/screens/login_screen.dart';
 import 'package:inventory_user/services/auth_api_service.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check if the user is already logged in
+  // Check if the user is already logged in and get their role
   bool isLoggedIn = await AuthApiService().isUserLoggedIn();
+
+  // Load user role from SharedPreferences
+  String? userRole;
+  if (isLoggedIn) {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    userRole = prefs.getString('userRole');
+  }
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider(isLoggedIn)),
+        ChangeNotifierProvider(
+          create: (_) {
+            final provider = AuthProvider(isLoggedIn);
+            // Set the loaded role
+            if (userRole != null) {
+              provider.setRole(userRole);
+            }
+            return provider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
       ],
       child: MyApp(navigatorKey: navigatorKey),
@@ -41,7 +59,9 @@ class MyApp extends StatelessWidget {
           darkTheme: ThemeData.dark(useMaterial3: true),
           themeMode: ThemeMode.system,
           home: authProvider.isLoggedIn
-              ? const MyHomePage(title: 'Inventory+')
+              ? (authProvider.isAdmin
+                  ? const AdminDashboardScreen()
+                  : const MyHomePage(title: 'Inventory+'))
               : const LoginPage(),
           routes: {
             '/login': (context) => const LoginPage(),

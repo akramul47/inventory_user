@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
+import 'package:inventory_user/screens/product_details_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 
@@ -89,6 +90,16 @@ class _MyCardWidgetState extends State<MyCardWidget> {
 
     return GestureDetector(
       onTap: () {
+        // Navigate to product details screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailsScreen(product: product),
+          ),
+        );
+      },
+      onLongPress: () {
+        // Long press to edit product
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -109,18 +120,28 @@ class _MyCardWidgetState extends State<MyCardWidget> {
         child: ListTile(
           leading: CircleAvatar(
             radius: 24,
-            backgroundColor: Colors.transparent,
-            child: CachedNetworkImage(
-              imageUrl:
-                  product.imageUrls.isNotEmpty ? product.imageUrls.first : '',
-              imageBuilder: (context, imageProvider) => CircleAvatar(
-                backgroundImage: imageProvider,
-              ),
-              errorWidget: (context, url, error) => const Icon(
-                Icons.error,
-                color: Pallete.primaryRed,
-              ),
-            ),
+            backgroundColor: Colors.grey.shade200,
+            child: product.imageUrls.isNotEmpty &&
+                    product.imageUrls.first.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: product.imageUrls.first,
+                    imageBuilder: (context, imageProvider) => CircleAvatar(
+                      radius: 24,
+                      backgroundImage: imageProvider,
+                    ),
+                    placeholder: (context, url) => const Icon(
+                      Icons.inventory_2,
+                      color: Colors.grey,
+                    ),
+                    errorWidget: (context, url, error) => const Icon(
+                      Icons.inventory_2,
+                      color: Colors.grey,
+                    ),
+                  )
+                : const Icon(
+                    Icons.inventory_2,
+                    color: Colors.grey,
+                  ),
           ),
           title: Text(
             name,
@@ -167,5 +188,4 @@ class _MyCardWidgetState extends State<MyCardWidget> {
       ),
     );
   }
-
 }
