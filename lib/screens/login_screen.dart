@@ -57,50 +57,74 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       // Set background color
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment:
-                CrossAxisAlignment.center, // Center content horizontally
-            children: [
-              // Spacing
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.2,
-              ),
-              // Logo section
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Image.asset(
-                  'assets/logo.jpeg', height: 70, width: 400, // logo path
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Determine if we're on a larger screen
+            final isLargeScreen = constraints.maxWidth > 600;
+            
+            return Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isLargeScreen ? 40.0 : 20.0,
+                  vertical: 20.0,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isLargeScreen ? 500 : double.infinity,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Spacing - adaptive based on screen size
+                      SizedBox(
+                        height: isLargeScreen 
+                            ? 40 
+                            : MediaQuery.of(context).size.height * 0.1,
+                      ),
+                      
+                      // Logo section - centered and responsive
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Image.asset(
+                            'assets/logo.jpeg',
+                            height: isLargeScreen ? 100 : 70,
+                            width: isLargeScreen ? 500 : 400,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      
+                      SizedBox(height: isLargeScreen ? 50 : 30),
+                      
+                      // Login fields
+                      LoginField(
+                        hintText: 'Email',
+                        controller: emailController,
+                      ),
+                      const SizedBox(height: 15),
+                      LoginField(
+                        hintText: 'Password',
+                        controller: passwordController,
+                        obscureText: true,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Gradient button
+                      GradientButton(
+                        isLoading: isLoading,
+                        onPressed: _handleLogin,
+                      ),
+
+                      SizedBox(height: isLargeScreen ? 60 : 40),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(
-                height: 30,
-              ),
-              // Login fields
-              LoginField(
-                hintText: 'Email',
-                controller: emailController,
-              ),
-              const SizedBox(height: 15),
-              LoginField(
-                hintText: 'Password',
-                controller: passwordController,
-                obscureText: true,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Gradient button
-              GradientButton(
-                isLoading: isLoading,
-                onPressed: _handleLogin,
-              ),
-
-              const SizedBox(height: 40), // Additional spacing at bottom
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

@@ -7,8 +7,9 @@ import 'package:inventory_user/widgets/app_drawer.dart';
 import 'package:inventory_user/widgets/inventory_card.dart';
 import 'package:inventory_user/widgets/scanner.dart';
 import 'package:inventory_user/widgets/search_barcode.dart';
-import 'package:inventory_user/widgets/shimmer.dart';
+import 'package:inventory_user/widgets/modern_shimmer.dart';
 import 'package:inventory_user/widgets/warehouse_list.dart';
+import 'package:inventory_user/widgets/empty_state_widget.dart';
 import 'package:provider/provider.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -54,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage>
       final token = await AuthService.getToken();
 
       // Fetch products and warehouse data
-      await productProvider.fetchWarehouseCategoryBrand(token);
+      await productProvider.fetchWarehouseCategoryBrand();
       await productProvider.loadMoreProducts();
 
       setState(() {
@@ -91,83 +92,197 @@ class _MyHomePageState extends State<MyHomePage>
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white),
-          toolbarHeight: 55,
-          backgroundColor: Pallete.primaryRed,
-          title: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Image.asset(
-              'assets/logo.jpeg',
-              height: 40,
-            ),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed: () async {
-                      await BarcodeHelper.scanBarcodeAndNavigate(context);
-                    },
-                    icon: const Icon(Icons.qr_code_scanner_outlined),
-                    iconSize: 30,
-                    color: Colors.white,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLargeScreen = constraints.maxWidth > 600;
+        
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            appBar: AppBar(
+              iconTheme: const IconThemeData(color: Colors.white),
+              toolbarHeight: 55,
+              backgroundColor: Pallete.primaryRed,
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Image.asset(
+                  'assets/logo.jpeg',
+                  height: 40,
+                ),
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          await BarcodeHelper.scanBarcodeAndNavigate(context);
+                        },
+                        icon: const Icon(Icons.qr_code_scanner_outlined),
+                        iconSize: 30,
+                        color: Colors.white,
+                      ),
+                      IconButton(
+                        onPressed: () async {
+                          await SearchFromBarcode.scanBarcodeAndNavigate(context);
+                        },
+                        icon: const Icon(Icons.search_outlined),
+                        iconSize: 30,
+                        color: Colors.white,
+                      ),
+                    ],
                   ),
-                  // IconButton(
-                  //   onPressed: () {},
-                  //   icon: const Icon(Icons.sort_by_alpha_outlined),
-                  //   iconSize: 30,
-                  //   color: Colors.white,
-                  // ),
-                  IconButton(
-                    onPressed: () async {
-                      await SearchFromBarcode.scanBarcodeAndNavigate(context);
-                    },
-                    icon: const Icon(Icons.search_outlined),
-                    iconSize: 30,
-                    color: Colors.white,
+                ),
+              ],
+              // Only show TabBar on mobile screens
+              bottom: isLargeScreen ? null : const TabBar(
+                indicatorColor: Colors.white,
+                tabs: [
+                  Tab(
+                    icon: Icon(
+                      Icons.category,
+                      color: Colors.white,
+                    ),
+                    text: 'ALL ITEMS',
+                  ),
+                  Tab(
+                    icon: Icon(
+                      Icons.local_offer,
+                      color: Colors.white,
+                    ),
+                    text: 'WAREHOUSE',
                   ),
                 ],
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white54,
               ),
             ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            tabs: [
-              Tab(
-                icon: Icon(
-                  Icons.category,
-                  color: Colors.white,
-                ),
-                text: 'ALL ITEMS',
-              ),
-              Tab(
-                icon: Icon(
-                  Icons.local_offer,
-                  color: Colors.white,
-                ),
-                text: 'WAREHOUSE',
-              ),
-            ],
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white54,
-          ),
-        ),
         drawer: AppDrawer(navigatorKey: GlobalKey<NavigatorState>()),
-        body: TabBarView(
-          children: [
-            _ItemsTabContent(
-                isLoading: _isLoading,
-                isRefreshing: _isRefreshing,
-                myCardWidget:
-                    buildMyCardWidget()), // Pass the buildMyCardWidget method
-            const WarehouseListWidget(),
-          ],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isLargeScreen = constraints.maxWidth > 600;
+            
+            if (isLargeScreen) {
+              // Show both tabs side by side on larger screens
+              return Row(
+                children: [
+                  // All Items - 70%
+                  Expanded(
+                    flex: 7,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          right: BorderSide(
+                            color: Colors.grey.shade300,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          // Header for All Items
+                          Container(
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.grey.shade300,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.category,
+                                  color: Pallete.primaryRed,
+                                  size: 24,
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'ALL ITEMS',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Content
+                          Expanded(
+                            child: _ItemsTabContent(
+                              isLoading: _isLoading,
+                              isRefreshing: _isRefreshing,
+                              myCardWidget: buildMyCardWidget(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Warehouse - 30%
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        // Header for Warehouse
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.local_offer,
+                                color: Pallete.primaryRed,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'WAREHOUSE',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Content
+                        const Expanded(
+                          child: WarehouseListWidget(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              // Show tabs on mobile screens
+              return TabBarView(
+                children: [
+                  _ItemsTabContent(
+                    isLoading: _isLoading,
+                    isRefreshing: _isRefreshing,
+                    myCardWidget: buildMyCardWidget(),
+                  ),
+                  const WarehouseListWidget(),
+                ],
+              );
+            }
+          },
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {},
@@ -229,7 +344,9 @@ class _MyHomePageState extends State<MyHomePage>
             offset: const Offset(0, -130),
           ),
         ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -248,12 +365,17 @@ class _ItemsTabContent extends StatelessWidget {
       builder: (context, productProvider, _) {
         final products = productProvider.products;
 
-        // If isLoading is true or products is empty, show circular progress indicator
-        if (isLoading || products.isEmpty) {
-          return const CardSkeleton();
+        // Show loading skeleton while fetching data
+        if (isLoading) {
+          return const ProductCardShimmer();
         }
 
-        // If products is not empty, show the list of items
+        // Show empty state when no products are available
+        if (products.isEmpty) {
+          return const NoProductsEmptyState();
+        }
+
+        // Show the list of items
         return myCardWidget;
       },
     );

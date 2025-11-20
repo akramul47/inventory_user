@@ -1,4 +1,6 @@
 import 'package:inventory_user/providers/product_provider.dart';
+import 'package:inventory_user/utils/api_constants.dart';
+
 
 class Product {
   final int id;
@@ -47,7 +49,7 @@ class Product {
     List<String> images = [];
     if (json['product_images'] != null) {
       images = List<String>.from(json['product_images'].map(
-          (imageJson) => '$baseUrlWithoutApi/${imageJson['image'] ?? ''}'));
+          (imageJson) => '${ApiConstants.BASE_URL_WITHOUT_API}/${imageJson['image'] ?? ''}'));
     }
 
     return Product(
@@ -74,7 +76,7 @@ class Product {
       imageUrl: json['product_images'] != null &&
               json['product_images'].isNotEmpty &&
               json['product_images'][0]['image'] != null
-          ? '$baseUrl/${json['product_images'][0]['image']}'
+          ? '${ApiConstants.BASE_URL_WITHOUT_API}/${json['product_images'][0]['image']}'
           : '', // Handle null value for imageUrl
       warehouseTag:
           json['warehouse'] != null && json['warehouse']['name'] != null

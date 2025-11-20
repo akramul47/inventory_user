@@ -4,7 +4,7 @@ import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
 import 'package:inventory_user/screens/home_screen.dart';
 import 'package:inventory_user/screens/login_screen.dart';
-import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:inventory_user/services/auth_api_service.dart';
 import 'package:provider/provider.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -13,7 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Check if the user is already logged in
-  bool isLoggedIn = await AuthService.isUserLoggedIn();
+  bool isLoggedIn = await AuthApiService().isUserLoggedIn();
 
   runApp(
     MultiProvider(
