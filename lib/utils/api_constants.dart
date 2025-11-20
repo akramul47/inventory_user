@@ -3,9 +3,9 @@
 /// Update BASE_URL when deploying to production server
 class ApiConstants {
   // ============ BASE URLs ============
-  // For local development/testing
-  static const String BASE_URL = 'http://localhost:3000/api';
-  static const String BASE_URL_WITHOUT_API = 'http://localhost:3000';
+  // For local development/testing with physical device
+  static const String BASE_URL = 'http://192.168.31.64:3000/api';
+  static const String BASE_URL_WITHOUT_API = 'http://192.168.31.64:3000';
 
   // For production (update when deploying to cPanel)
   // static const String BASE_URL = 'https://yourdomain.com/api';
