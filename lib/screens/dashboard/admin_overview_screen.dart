@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/models/product_model.dart';
+import 'package:inventory_user/screens/dashboard/warehouse_management_screen.dart';
+import 'package:inventory_user/screens/dashboard/category_management_screen.dart';
+import 'package:inventory_user/screens/dashboard/brand_management_screen.dart';
 import 'package:inventory_user/services/master_data_api_service.dart';
 import 'package:inventory_user/utils/pallete.dart';
 
 /// Admin Overview Screen
 /// Displays statistics and quick actions for the admin
 class AdminOverviewScreen extends StatefulWidget {
-  final Function(int) onNavigateToTab;
-
-  const AdminOverviewScreen({Key? key, required this.onNavigateToTab})
-      : super(key: key);
+  const AdminOverviewScreen({Key? key}) : super(key: key);
 
   @override
   State<AdminOverviewScreen> createState() => _AdminOverviewScreenState();
@@ -99,21 +99,42 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           title: 'Warehouses',
           value: _warehouseCount.toString(),
           color: const Color(0xFF3B82F6),
-          onTap: () => widget.onNavigateToTab(1),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const WarehouseManagementScreen(),
+              ),
+            );
+          },
         ),
         _buildStatCard(
           icon: Icons.category,
           title: 'Categories',
           value: _categoryCount.toString(),
           color: const Color(0xFF8B5CF6),
-          onTap: () => widget.onNavigateToTab(2),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const CategoryManagementScreen(),
+              ),
+            );
+          },
         ),
         _buildStatCard(
           icon: Icons.business_center,
           title: 'Brands',
           value: _brandCount.toString(),
           color: const Color(0xFFEC4899),
-          onTap: () => widget.onNavigateToTab(3),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BrandManagementScreen(),
+              ),
+            );
+          },
         ),
         _buildStatCard(
           icon: Icons.inventory_2,

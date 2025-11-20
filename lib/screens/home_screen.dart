@@ -103,13 +103,20 @@ class _MyHomePageState extends State<MyHomePage>
               iconTheme: const IconThemeData(color: Colors.white),
               toolbarHeight: 55,
               backgroundColor: Pallete.primaryRed,
-              title: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Image.asset(
-                  'assets/logo.jpeg',
-                  height: 40,
+              title: const Text(
+                'Inventory+',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              // title: Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              //   child: Image.asset(
+              //     'assets/logo.jpeg',
+              //     height: 40,
+              //   ),
+              // ),
               actions: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),

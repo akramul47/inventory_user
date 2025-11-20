@@ -67,37 +67,20 @@ class ProductApiService {
     }
   }
   
-  /// Create new product with images
+  /// Create new product (without images)
   /// 
   /// [productData] - Product information
-  /// [imageFiles] - List of image files to upload
+  /// Returns created product data including the new product ID
   Future<Map<String, dynamic>> createProduct(
     Map<String, dynamic> productData,
-    List<File> imageFiles,
   ) async {
     try {
-      // Create form data
-      final formData = FormData.fromMap({
-        ...productData,
-      });
-      
-      // Add image files
-      if (imageFiles.isNotEmpty) {
-        for (var imageFile in imageFiles) {
-          final multipartFile = await MultipartFile.fromFile(
-            imageFile.path,
-            filename: imageFile.path.split('/').last,
-          );
-          formData.files.add(MapEntry('images[]', multipartFile));
-        }
-      }
-      
-      final response = await _apiService.uploadFile(
+      final response = await _apiService.post(
         ApiConstants.PRODUCTS_PATH,
-        formData,
+        data: productData,
       );
       
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
         if (data['status'] == true) {
           return data;
@@ -122,15 +105,10 @@ class ProductApiService {
     Map<String, dynamic> productData,
   ) async {
     try {
-      // For multipart requests with _method PUT
-      final formData = FormData.fromMap({
-        '_method': 'PUT',
-        ...productData,
-      });
-      
-      final response = await _apiService.uploadFile(
+      // Use PUT request with JSON data (not FormData)
+      final response = await _apiService.put(
         ApiConstants.productByIdPath(id),
-        formData,
+        data: productData,
       );
       
       if (response.statusCode == 200) {
@@ -149,56 +127,50 @@ class ProductApiService {
     }
   }
   
-  /// Update product images
+  /// Upload product images
   /// 
-  /// [id] - Product ID
-  /// [imageFiles] - New image files to upload
-  /// [imageIdsToDelete] - List of image IDs to delete (optional)
-  Future<Map<String, dynamic>> updateProductImages(
-    int id,
-    List<File> imageFiles, {
-    List<int>? imageIdsToDelete,
-  }) async {
+  /// [productId] - Product ID
+  /// [imageFiles] - Image files to upload
+  Future<Map<String, dynamic>> uploadProductImages(
+    int productId,
+    List<File> imageFiles,
+  ) async {
     try {
-      final formData = FormData.fromMap({
-        '_method': 'PUT',
-      });
-      
-      // Add new image files
-      if (imageFiles.isNotEmpty) {
-        for (var imageFile in imageFiles) {
-          final multipartFile = await MultipartFile.fromFile(
-            imageFile.path,
-            filename: imageFile.path.split('/').last,
-          );
-          formData.files.add(MapEntry('images[]', multipartFile));
-        }
+      if (imageFiles.isEmpty) {
+        return {
+          'status': true,
+          'message': 'No images to upload',
+        };
       }
+
+      final formData = FormData();
       
-      // Add image IDs to delete
-      if (imageIdsToDelete != null && imageIdsToDelete.isNotEmpty) {
-        for (var imageId in imageIdsToDelete) {
-          formData.fields.add(MapEntry('delete_image_ids[]', imageId.toString()));
-        }
+      // Add image files (backend expects 'images' field name)
+      for (var imageFile in imageFiles) {
+        final multipartFile = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        );
+        formData.files.add(MapEntry('images', multipartFile));
       }
       
       final response = await _apiService.uploadFile(
-        ApiConstants.productImagesPath(id),
+        ApiConstants.uploadProductImagesPath(productId),
         formData,
       );
       
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
         if (data['status'] == true) {
           return data;
         } else {
-          throw Exception(data['message'] ?? 'Failed to update images');
+          throw Exception(data['message'] ?? 'Failed to upload images');
         }
       } else {
-        throw Exception('Failed to update product images');
+        throw Exception('Failed to upload product images');
       }
     } catch (e) {
-      print('Update product images error: $e');
+      print('Upload product images error: $e');
       rethrow;
     }
   }
@@ -218,6 +190,27 @@ class ProductApiService {
       }
     } catch (e) {
       print('Delete product error: $e');
+      rethrow;
+    }
+  }
+  
+  /// Delete product image
+  /// 
+  /// [imageId] - Image ID to delete
+  Future<bool> deleteProductImage(int imageId) async {
+    try {
+      final response = await _apiService.delete(
+        ApiConstants.deleteProductImagePath(imageId),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return data['status'] == true;
+      } else {
+        throw Exception('Failed to delete image');
+      }
+    } catch (e) {
+      print('Delete image error: $e');
       rethrow;
     }
   }
@@ -265,7 +258,10 @@ class ProductApiService {
       
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final warehousesData = data['data'] as List;
+        final warehousesData = data['data'] as List?;
+        if (warehousesData == null) {
+          return [];
+        }
         return warehousesData
             .map((json) => Warehouse.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -285,7 +281,10 @@ class ProductApiService {
       
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final categoriesData = data['data'] as List;
+        final categoriesData = data['data'] as List?;
+        if (categoriesData == null) {
+          return [];
+        }
         return categoriesData
             .map((json) => Category.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -305,7 +304,10 @@ class ProductApiService {
       
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final brandsData = data['data'] as List;
+        final brandsData = data['data'] as List?;
+        if (brandsData == null) {
+          return [];
+        }
         return brandsData
             .map((json) => Brand.fromJson(json as Map<String, dynamic>))
             .toList();

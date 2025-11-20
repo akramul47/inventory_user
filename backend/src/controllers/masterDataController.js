@@ -7,7 +7,7 @@ async function getWarehouses(req, res) {
 
         res.json({
             status: true,
-            warehouses
+            data: warehouses
         });
     } catch (error) {
         console.error('Get warehouses error:', error);
@@ -25,7 +25,7 @@ async function getCategories(req, res) {
 
         res.json({
             status: true,
-            categories
+            data: categories
         });
     } catch (error) {
         console.error('Get categories error:', error);
@@ -43,7 +43,7 @@ async function getBrands(req, res) {
 
         res.json({
             status: true,
-            brands
+            data: brands
         });
     } catch (error) {
         console.error('Get brands error:', error);

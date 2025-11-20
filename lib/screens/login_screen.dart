@@ -148,29 +148,44 @@ class _LoginPageState extends State<LoginPage> {
                       ),
 
                       // Logo
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Image.asset(
-                            'assets/logo.jpeg',
-                            height: isLargeScreen ? 100 : 70,
-                            width: isLargeScreen ? 500 : 400,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
+                      // Center(
+                      //   child: Padding(
+                      //     padding: const EdgeInsets.all(10.0),
+                      //     child: Image.asset(
+                      //       'assets/logo.jpeg',
+                      //       height: isLargeScreen ? 100 : 70,
+                      //       width: isLargeScreen ? 500 : 400,
+                      //       fit: BoxFit.contain,
+                      //     ),
+                      //   ),
+                      // ),
 
                       SizedBox(height: isLargeScreen ? 40 : 20),
 
-                      // Title
+                      // App Title
+                      const Text(
+                        'Inventory+',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Pallete.primaryRed,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Subtitle
                       Text(
                         _isAdmin
                             ? 'Admin Portal'
                             : (_isLogin ? 'Welcome Back' : 'Create Account'),
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Pallete.whiteColor,
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Pallete.whiteColor
+                              : Pallete.gradient3,
                         ),
                         textAlign: TextAlign.center,
                       ),

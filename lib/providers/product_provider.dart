@@ -214,7 +214,17 @@ class ProductProvider extends ChangeNotifier {
   Future<void> addProduct(
       Map<String, dynamic> productData, List<File> images) async {
     try {
-      await _productApiService.createProduct(productData, images);
+      // Create product first
+      final result = await _productApiService.createProduct(productData);
+      
+      // Upload images if product was created successfully and there are images
+      if (result['status'] == true && images.isNotEmpty) {
+        final productId = result['product']?['id'];
+        if (productId != null) {
+          await _productApiService.uploadProductImages(productId, images);
+        }
+      }
+      
       // Refresh list
       resetCurrentPage();
       await fetchProductsByPage(1);

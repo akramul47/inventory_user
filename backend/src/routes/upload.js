@@ -12,4 +12,11 @@ router.post(
     uploadController.uploadProductImages
 );
 
+// Delete product image (protected)
+router.delete(
+    '/images/:imageId',
+    authenticate,
+    uploadController.deleteProductImage
+);
+
 module.exports = router;

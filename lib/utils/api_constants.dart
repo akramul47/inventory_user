@@ -22,9 +22,14 @@ class ApiConstants {
   static const String PRODUCTS_PATH = '/products';
   static String productsPagePath(int page) => '$PRODUCTS_PATH?page=$page';
   static String productByIdPath(int id) => '$PRODUCTS_PATH/$id';
-  static String productImagesPath(int id) => '$PRODUCTS_PATH/$id/images';
   static String productsByWarehousePath(int warehouseId) =>
       '$PRODUCTS_PATH/warehouse/$warehouseId';
+
+  // ============ UPLOAD ENDPOINTS ============
+  static String uploadProductImagesPath(int productId) => 
+      '/upload/products/$productId/images';
+  static String deleteProductImagePath(int imageId) => 
+      '/upload/images/$imageId';
 
   // ============ MASTER DATA ENDPOINTS ============
   static const String WAREHOUSES_PATH = '/warehouses';

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
 import 'package:inventory_user/providers/product_provider.dart';
@@ -8,11 +9,18 @@ import 'package:inventory_user/screens/login_screen.dart';
 import 'package:inventory_user/services/auth_api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize sqflite for desktop platforms (Windows, Linux, macOS)
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
 
   // Check if the user is already logged in and get their role
   bool isLoggedIn = await AuthApiService().isUserLoggedIn();

@@ -254,11 +254,12 @@ class _WarehouseManagementScreenState extends State<WarehouseManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Pallete.backgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWideScreen = constraints.maxWidth > 800;
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Pallete.backgroundColor,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth > 800;
 
           return Column(
             children: [
@@ -339,6 +340,7 @@ class _WarehouseManagementScreenState extends State<WarehouseManagementScreen> {
           'Add Warehouse',
           style: TextStyle(color: Colors.white),
         ),
+      ),
       ),
     );
   }

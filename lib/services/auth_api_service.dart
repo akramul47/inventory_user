@@ -105,16 +105,15 @@ class AuthApiService {
   }
 
   /// Logout current user
+  /// 
+  /// JWT is stateless, so logout only clears local storage
   Future<void> logout() async {
     try {
-      // Call logout endpoint (optional - for server-side session cleanup)
-      await _apiService.post(ApiConstants.LOGOUT_PATH);
-    } catch (e) {
-      print('Logout API error: $e');
-      // Continue with local logout even if API fails
-    } finally {
       // Clear local auth data
       await _clearAuthData();
+    } catch (e) {
+      print('Logout error: $e');
+      rethrow;
     }
   }
 

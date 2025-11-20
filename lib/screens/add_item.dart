@@ -1,13 +1,13 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:barcode_scan2/barcode_scan2.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
-import 'package:inventory_user/services/auth_servcie.dart';
+import 'package:inventory_user/services/product_api_service.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -54,9 +54,6 @@ class _AddItemPageState extends State<AddItemPage> {
   String? _selectedWarehouseId;
   String? _selectedCategoryId;
   String? _selectedBrandId;
-  Warehouse? _selectedWarehouse;
-  Category? _selectedCategory;
-  Brand? _selectedBrand;
   bool _isSaving = false;
   String? _barcodeError;
   String _userRole = '';
@@ -65,8 +62,6 @@ class _AddItemPageState extends State<AddItemPage> {
   void initState() {
     super.initState();
     _getUserRole();
-    final itemProvider = Provider.of<ProductProvider>(context, listen: false);
-    final warehouses = itemProvider.warehouses;
     if (widget.isUpdatingItem && widget.product != null) {
       _barcodeController.text = widget.product!.barcode;
       _nameController.text = widget.product!.name;
@@ -74,27 +69,8 @@ class _AddItemPageState extends State<AddItemPage> {
       _quantityController.text = widget.product!.quantity.toString();
       _retailPriceController.text = widget.product!.retailPrice.toString();
       _salePriceController.text = widget.product!.salePrice.toString();
-      _selectedWarehouse = warehouses.isNotEmpty
-          ? warehouses.firstWhere(
-              (warehouse) => warehouse.id == widget.product!.warehouseId,
-              orElse: () => warehouses.first,
-            )
-          : Warehouse(id: '0', name: 'Default Warehouse');
       _selectedWarehouseId = widget.product!.warehouseId;
-      _selectedCategory = itemProvider.categories.isNotEmpty
-          ? itemProvider.categories.firstWhere(
-              (category) =>
-                  category.id == widget.product!.categoryId.toString(),
-              orElse: () => itemProvider.categories.first,
-            )
-          : null;
       _selectedCategoryId = widget.product!.categoryId.toString();
-      _selectedBrand = itemProvider.brands.isNotEmpty
-          ? itemProvider.brands.firstWhere(
-              (brand) => brand.id == widget.product!.brandId.toString(),
-              orElse: () => itemProvider.brands.first,
-            )
-          : null;
       _selectedBrandId = widget.product!.brandId.toString();
 
       // Print statements for debugging
@@ -155,7 +131,11 @@ class _AddItemPageState extends State<AddItemPage> {
 
   Future<void> _compressAndAddFiles(List<XFile> pickedFiles) async {
     for (var pickedFile in pickedFiles) {
-      final compressedFile = await _compressImage(File(pickedFile.path));
+      final file = File(pickedFile.path);
+      // Only compress on mobile platforms (Android/iOS)
+      final compressedFile = (Platform.isAndroid || Platform.isIOS)
+          ? await _compressImage(file)
+          : file;
       setState(() {
         _imageFiles.add(compressedFile);
       });
@@ -175,7 +155,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
     // Create a new file in the temporary directory
     final compressedFile =
-        File('${tempDir.path}/compressed_${file.path.split('/').last}');
+        File('${tempDir.path}/compressed_${path.basename(file.path)}');
     await compressedFile.writeAsBytes(compressedBytes!);
 
     return compressedFile;
@@ -203,321 +183,217 @@ class _AddItemPageState extends State<AddItemPage> {
 
   // Function for updating product information
   Future<void> _updateProduct() async {
-    // print('Entering _updateProduct');
-
-    final token = await AuthService.getToken();
     final productId = widget.product?.id;
 
+    if (productId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product ID is missing')),
+      );
+      return;
+    }
+
     try {
-      if (productId != null) {
-        final uri = Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/app/update/$productId');
-        final request = http.MultipartRequest('POST', uri);
-        request.fields['_method'] = 'PUT'; // Set the request method to PUT
-        request.headers['Authorization'] = 'Bearer $token';
+      final productApiService = ProductApiService();
+      
+      // Prepare product data
+      final productData = {
+        'warehouse_id': _selectedWarehouseId,
+        'category_id': _selectedCategoryId,
+        'brand_id': _selectedBrandId,
+        'product_name': _nameController.text.trim(),
+        'scan_code': _barcodeController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'product_retail_price': _retailPriceController.text.trim(),
+        'product_sale_price': _salePriceController.text.trim(),
+        'quantity': _quantityController.text.trim(),
+      };
 
-        // Add fields to the request body
-        request.fields['warehouse_id'] = _selectedWarehouseId.toString();
-        request.fields['category_id'] = _selectedCategoryId.toString();
-        request.fields['product_name'] = _nameController.text.trim();
-        request.fields['description'] = _descriptionController.text.trim();
-        request.fields['product_retail_price'] =
-            _retailPriceController.text.trim();
-        request.fields['product_sale_price'] = _salePriceController.text.trim();
-        request.fields['scan_code'] = _barcodeController.text.trim();
-
-        // print('Request Headers: ${request.headers}');
-        // print('Request Fields: ${request.fields}');
-
-        final streamedResponse = await request.send();
-        final response = await http.Response.fromStream(streamedResponse);
-
-        // print('Response status code: ${response.statusCode}');
-        // print('Response body: ${response.body}');
-
-        final responseData = jsonDecode(response.body);
-
-        if (responseData['status'] == true) {
-          // Product information updated successfully
-          // print('Product information updated successfully');
+      // Update product info
+      final result = await productApiService.updateProduct(productId, productData);
+      
+      if (result['status'] == true) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Product updated successfully')),
           );
+        }
 
-          // print('_imageFiles length: ${_imageFiles.length}');
-          if (_imageFiles.isNotEmpty) {
-            // print('Calling _updateProductImages');
-            await _updateProductImages(productId, token);
-          } else {
-            Navigator.pop(context);
-            // widget.refreshDataCallback?.call();
-            // print('No new images selected or product update failed');
-          }
+        // Update images if new ones were selected
+        if (_imageFiles.isNotEmpty) {
+          await _uploadProductImages(productId);
         } else {
-          // Product information update failed
-          String errorMessage =
-              responseData['message'] as String? ?? 'Failed to update product';
-          // print('Error updating product: $errorMessage');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(errorMessage)),
-          );
+          widget.refreshDataCallback?.call();
+          if (mounted) {
+            Navigator.pop(context);
+          }
         }
       } else {
-        throw Exception('Product ID is null');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Failed to update product')),
+          );
+        }
       }
     } catch (e) {
-      // print('Error updating product: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
-      );
+      print('Error updating product: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: $e')),
+        );
+      }
     }
   }
 
-  Future<void> _updateProductImages(int productId, String token) async {
-    // print('Entering _updateProductImages');
-
-    final uri = Uri.parse(
-        'https://warehouse.z8tech.one/Backend/public/api/products/app/update/image/$productId');
-    final request = http.MultipartRequest('POST', uri);
-    request.fields['_method'] = 'PUT'; // Set the request method to PUT
-    request.headers['Authorization'] = 'Bearer $token';
-    request.headers['Content-type'] = 'Application/json';
-
+  Future<void> _uploadProductImages(int productId) async {
     try {
-      // Handle image files
-      if (_imageFiles.isNotEmpty) {
-        // print('Selected image count: ${_imageFiles.length}');
-        for (var imageFile in _imageFiles) {
-          // print('Image file path: ${imageFile.path}');
-          // Extract file name from the path
-          String fileName = imageFile.path.split('/').last;
-          // print('Image file name: $fileName');
-          // Add file name to the request payload
-          request.fields['images[]'] = fileName;
-          // Add file to the request
-          final multipartFile =
-              await http.MultipartFile.fromPath('images[]', imageFile.path);
-          request.files.add(multipartFile);
+      final productApiService = ProductApiService();
+      
+      // Upload images
+      final result = await productApiService.uploadProductImages(
+        productId,
+        _imageFiles,
+      );
+      
+      if (result['status'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Product images uploaded successfully')),
+          );
+          widget.refreshDataCallback?.call();
+          Navigator.pop(context);
         }
       } else {
-        // print('No new images selected');
-      }
-
-      // Print the request payload
-      // print('Request Headers: ${request.headers}');
-      // print('Request Fields: ${request.fields}');
-      // print('Request Files: ${request.files.map((file) => file.field)}');
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      // print('Image request status code: ${response.statusCode}');
-      // print('Image request body: ${response.body}');
-
-      final imageResponseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && imageResponseData['status'] == true) {
-        // Product images updated successfully
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product images updated successfully')),
-        );
-        widget.refreshDataCallback?.call();
-        Navigator.pop(context);
-      } else {
-        // Product image update failed
-        String errorMessage = imageResponseData['message'] as String? ??
-            'Failed to update product images';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Failed to upload images')),
+          );
+        }
       }
     } catch (e) {
-      // print('Error updating product images: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('An error occurred while uploading the images')),
-      );
+      print('Error uploading product images: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading images: ${e.toString()}')),
+        );
+      }
     }
   }
 
   Future<void> _postProduct() async {
-    // print('Entering _postProduct');
-    final String barcode = _barcodeController.text;
-    final String name = _nameController.text;
-    final String description = _descriptionController.text;
-    final double retailPrice = double.parse(_retailPriceController.text);
-    final double salePrice = double.parse(_salePriceController.text);
-    final token = await AuthService.getToken();
-
     try {
-      final uri = Uri.parse(
-          'https://warehouse.z8tech.one/Backend/public/api/products/store');
-      final request = http.MultipartRequest('POST', uri);
-      request.headers['Authorization'] = 'Bearer $token';
+      final productApiService = ProductApiService();
+      
+      // Prepare product data
+      final productData = {
+        'warehouse_id': _selectedWarehouseId,
+        'category_id': _selectedCategoryId,
+        'brand_id': _selectedBrandId,
+        'product_name': _nameController.text.trim(),
+        'scan_code': _barcodeController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'product_retail_price': _retailPriceController.text.trim(),
+        'product_sale_price': _salePriceController.text.trim(),
+        'quantity': _quantityController.text.trim(),
+      };
 
-      // Add text fields
-      request.fields['warehouse_id'] = _selectedWarehouseId.toString();
-      request.fields['category_id'] = _selectedCategoryId.toString();
-      request.fields['brand_id'] = _selectedBrandId.toString();
-      request.fields['product_name'] = name;
-      request.fields['description'] = description;
-      request.fields['product_retail_price'] = retailPrice.toString();
-      request.fields['product_sale_price'] = salePrice.toString();
-      request.fields['scan_code'] = barcode;
-
-      // Add multiple image files
-      if (_imageFiles.isNotEmpty) {
-        // print('Selected image count: ${_imageFiles.length}');
-        for (var imageFile in _imageFiles) {
-          // Extract file name from the path
-          String fileName = imageFile.path.split('/').last;
-          // print('Image file name: $fileName');
-          // Add file name to the request payload
-          request.fields['images[]'] = fileName;
-          // Add file to the request
-          final multipartFile =
-              await http.MultipartFile.fromPath('images[]', imageFile.path);
-          request.files.add(multipartFile);
+      // Create product first (without images)
+      final result = await productApiService.createProduct(productData);
+      
+      if (result['status'] == true) {
+        final productId = result['product']?['id'];
+        
+        if (productId != null && _imageFiles.isNotEmpty) {
+          // Upload images after product creation
+          await _uploadProductImages(productId);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Product saved successfully')),
+            );
+            widget.refreshDataCallback?.call();
+            Navigator.pop(context);
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? 'Failed to save product')),
+          );
         }
       }
-
-      //Print the request payload
-      // print('Request payload:');
-      // print('Headers: ${request.headers}');
-      // print('Fields: ${request.fields}');
-      // print('Files: ${request.files.map((file) => file.field)}');
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      // print('Response status code: ${response.statusCode}');
-      // print('Response body: ${response.body}');
-
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && responseData['status'] == true) {
-        // Product saved successfully
+    } catch (e) {
+      print('Error creating product: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Product saved successfully')),
-        );
-        // Call the _fetchData method to refresh the data
-        Navigator.pop(context);
-        widget.refreshDataCallback?.call();
-      } else if (response.statusCode == 401 &&
-          responseData['status'] == false) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You dont have permission'),
-          ),
-        );
-      } else {
-        // Product save failed
-        String errorMessage = responseData['errors']['scan_code']?.first ??
-            'Failed to save product';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
+          SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }
-    } catch (e) {
-      // print('Error uploading images: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('An error occurred while uploading the images')),
-      );
     }
   }
 
   Future<void> _deleteProduct() async {
-    final token = await AuthService.getToken();
     final productId = widget.product?.id;
 
-    try {
-      if (productId != null) {
-        final uri = Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/delete/$productId');
-        final response = await http.delete(
-          uri,
-          headers: {'Authorization': 'Bearer $token'},
-        );
+    if (productId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product ID is missing')),
+      );
+      return;
+    }
 
-        if (response.statusCode == 200) {
-          final responseData = jsonDecode(response.body);
-          if (responseData['status'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Item deleted successfully')),
-            );
-            widget.refreshDataCallback?.call();
-            Navigator.pop(context); // Go back to previous route
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(responseData['message'])),
-            );
-          }
-        } else {
+    try {
+      final productApiService = ProductApiService();
+      final success = await productApiService.deleteProduct(productId);
+      
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Item deleted successfully')),
+          );
+          widget.refreshDataCallback?.call();
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to delete item')),
           );
         }
-      } else {
-        throw Exception('Product ID is null');
       }
     } catch (e) {
-      // print('Error deleting product: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
-      );
+      print('Error deleting product: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
     }
   }
 
   List<int> deletedImageIds = [];
 
   Future<void> _deleteImage(int productImageId) async {
-    final token = await AuthService.getToken();
-    final productId = widget.product?.id;
-
-    // print('Image ID: ${productImageId}');
-    // print('Product ID: ${productId}');
-
     try {
-      final response = await http.post(
-        Uri.parse(
-            'https://warehouse.z8tech.one/Backend/public/api/products/app/update/image/$productId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-type': 'Appication/json'
-        },
-        body: jsonEncode({
-          '_method': 'PUT',
-          'imageId': productImageId,
-        }),
-      );
-
-      final responseData = jsonDecode(response.body);
-
-      if (response.statusCode == 200 && responseData['status'] == true) {
-        // Image deleted successfully
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image deleted successfully')),
-        );
-
-        // Add the image ID to the list of deleted image IDs
+      final productApiService = ProductApiService();
+      final success = await productApiService.deleteProductImage(productImageId);
+      
+      if (success) {
         setState(() {
           deletedImageIds.add(productImageId);
         });
-      } else {
-        // Image deletion failed
-        final errorMessage =
-            responseData['message'] as String? ?? 'Failed to delete image';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(errorMessage)),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image deleted successfully')),
+          );
+        }
       }
     } catch (e) {
-      // Error occurred
-      // print('Error deleting image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('An error occurred')),
-      );
+      print('Error deleting image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting image: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -537,272 +413,16 @@ class _AddItemPageState extends State<AddItemPage> {
           style: const TextStyle(color: Colors.white),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16.0),
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Image Picker
-                GestureDetector(
-                  onTap: () {
-                    _showImagePickerDialog(context);
-                  },
-                  child: const CircleAvatar(
-                    backgroundColor: Pallete.primaryRed,
-                    radius: 40,
-                    child: Icon(
-                      Icons.add_a_photo,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                // Existing images with delete buttons
-                if (widget.product != null &&
-                    widget.product!.imageUrls.isNotEmpty)
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8.0,
-                      mainAxisSpacing: 8.0,
-                    ),
-                    itemCount: widget.product!.imageUrls.length,
-                    itemBuilder: (context, index) {
-                      final imageUrl = widget.product!.imageUrls[index];
-                      final productImageId =
-                          widget.product!.productImages[index].id;
-
-                      if (deletedImageIds.contains(productImageId)) {
-                        // If the image ID is in the list of deleted image IDs, display an empty placeholder
-                        return Container(); // or any placeholder widget you want to show
-                      } else {
-                        // Otherwise, display the image
-                        return Stack(
-                          children: [
-                            Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                            ),
-                            // Positioned(
-                            //   top: -2,
-                            //   right: 20,
-                            //   child: IconButton(
-                            //     icon: const Icon(
-                            //       Icons.delete,
-                            //       color: Pallete.primaryRed,
-                            //     ),
-                            //     onPressed: () {
-                            //       _deleteImage(productImageId);
-                            //     },
-                            //   ),
-                            // ),
-                          ],
-                        );
-                      }
-                    },
-                  ),
-                const SizedBox(
-                  height: 16,
-                ),
-                const Divider(),
-                const SizedBox(
-                  height: 16,
-                ),
-                // Show picked images
-                if (_imageFiles.isNotEmpty)
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8.0,
-                      mainAxisSpacing: 8.0,
-                    ),
-                    itemCount: _imageFiles.length,
-                    itemBuilder: (context, index) {
-                      return Image.file(File(_imageFiles[index].path));
-                    },
-                  ),
-                // Replace with your Image Picker implementation
-                // Add Image Picker Functionality
-                // Add Image Picker Functionality
-                const SizedBox(height: 16.0),
-
-                TextFormField(
-                  controller: _barcodeController,
-                  decoration: InputDecoration(
-                    labelText: 'QR Code/Barcode Value',
-                    errorText: _barcodeError,
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.qr_code),
-                      onPressed: () async {
-                        try {
-                          var result = await BarcodeScanner.scan();
-                          String? scannedCode = result.rawContent;
-                          setState(() {
-                            _barcodeController.text = scannedCode;
-                            _barcodeError = null; // Clear previous error if any
-                          });
-                        } catch (e) {
-                          // print('Error scanning barcode: $e');
-                          setState(() {
-                            _barcodeError = 'Error scanning barcode';
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (Optional)',
-                  ),
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _retailPriceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Retail Price',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a retail price';
-                    }
-                    return null;
-                  },
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16.0),
-                TextFormField(
-                  controller: _salePriceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Sold Price',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a sold price (e.g., 0.0)';
-                    }
-                    return null;
-                  },
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16.0),
-                DropdownButtonFormField<Warehouse>(
-                  value: _selectedWarehouse,
-                  hint: const Text('Select Warehouse'),
-                  items: warehouses.map((warehouse) {
-                    return DropdownMenuItem<Warehouse>(
-                      value: warehouse,
-                      child: Text(warehouse.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedWarehouse = value;
-                      _selectedWarehouseId = value?.id;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a warehouse';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                DropdownButtonFormField<Category>(
-                  value: _selectedCategory,
-                  hint: const Text('Select Category'),
-                  items: categories.map((category) {
-                    return DropdownMenuItem<Category>(
-                      value: category,
-                      child: Text(category.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                      _selectedCategoryId = value?.id;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a category';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                DropdownButtonFormField<Brand>(
-                  value: _selectedBrand,
-                  hint: const Text('Select Brand'),
-                  items: brands.map((brand) {
-                    return DropdownMenuItem<Brand>(
-                      value: brand,
-                      child: Text(brand.name),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBrand = value;
-                      _selectedBrandId = value?.id;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a brand';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16.0),
-                if (widget.isUpdatingItem)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Show delete confirmation dialog
-                          _showDeleteConfirmationDialog(context);
-                        },
-                        icon: const Icon(Icons.delete),
-                        label: const Text('Delete'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Pallete.primaryRed,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWideScreen = constraints.maxWidth > 900;
+          return Form(
+            key: _formKey,
+            child: isWideScreen
+                ? _buildWideScreenLayout(warehouses, categories, brands)
+                : _buildMobileLayout(warehouses, categories, brands),
+          );
+        },
       ),
       floatingActionButton: _isSaving
           ? const FloatingActionButton(
@@ -820,6 +440,733 @@ class _AddItemPageState extends State<AddItemPage> {
               onPressed: _saveProduct,
               child: const Icon(Icons.save, color: Colors.white),
             ),
+    );
+  }
+
+  Widget _buildWideScreenLayout(
+      List<Warehouse> warehouses, List<Category> categories, List<Brand> brands) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: ListView(
+          padding: const EdgeInsets.all(32.0),
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left column - Images and Dropdowns
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      // Images section
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[900]
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]!
+                                : Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(24.0),
+                        child: _buildImageSection(4, showTitle: true),
+                      ),
+                      const SizedBox(height: 24),
+                      // Dropdowns section
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[900]
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey[800]!
+                                : Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(24.0),
+                        child: _buildDropdownFields(warehouses, categories, brands),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                // Right column - Form fields
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[900]
+                          : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]!
+                            : Colors.grey[200]!,
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        _buildTextFields(),
+                        if (widget.isUpdatingItem) ...[
+                          const SizedBox(height: 24),
+                          _buildDeleteButton(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout(
+      List<Warehouse> warehouses, List<Category> categories, List<Brand> brands) {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        _buildImageSection(3),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 20),
+        _buildTextFields(),
+        const SizedBox(height: 24),
+        _buildDropdownFields(warehouses, categories, brands),
+        if (widget.isUpdatingItem) ...[
+          const SizedBox(height: 24),
+          Center(child: _buildDeleteButton()),
+        ],
+        const SizedBox(height: 16.0),
+      ],
+    );
+  }
+
+  Widget _buildImageSection(int crossAxisCount, {bool showTitle = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Add Photos Button
+        Center(
+          child: GestureDetector(
+            onTap: () {
+              _showImagePickerDialog(context);
+            },
+            child: const CircleAvatar(
+              backgroundColor: Pallete.primaryRed,
+              radius: 40,
+              child: Icon(
+                Icons.add_a_photo,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+          ),
+        ),
+        if (showTitle &&
+            ((widget.product != null && widget.product!.imageUrls.isNotEmpty) ||
+                _imageFiles.isNotEmpty)) ...[
+          const SizedBox(height: 20),
+          Text(
+            'Product Images',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[300]
+                  : Colors.grey[800],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        // Existing images grid
+        if (widget.product != null && widget.product!.imageUrls.isNotEmpty)
+          _buildExistingImagesGrid(crossAxisCount),
+        // New images grid
+        if (_imageFiles.isNotEmpty) ...[
+          if (widget.product != null && widget.product!.imageUrls.isNotEmpty)
+            const SizedBox(height: 16),
+          _buildNewImagesGrid(crossAxisCount),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildExistingImagesGrid(int crossAxisCount) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12.0,
+        mainAxisSpacing: 12.0,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: widget.product!.imageUrls.length,
+      itemBuilder: (context, index) {
+        final imageUrl = widget.product!.imageUrls[index];
+        final productImageId = widget.product!.productImages[index].id;
+
+        if (deletedImageIds.contains(productImageId)) {
+          return Container();
+        } else {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        _deleteImage(productImageId);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildNewImagesGrid(int crossAxisCount) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 12.0,
+        mainAxisSpacing: 12.0,
+        childAspectRatio: 1.0,
+      ),
+      itemCount: _imageFiles.length,
+      itemBuilder: (context, index) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(
+            _imageFiles[index],
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDropdownFields(
+      List<Warehouse> warehouses, List<Category> categories, List<Brand> brands) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product Classification',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[300]
+                : Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 20),
+        DropdownButtonFormField<String>(
+          value: _selectedWarehouseId,
+          hint: const Text('Select Warehouse'),
+          decoration: InputDecoration(
+            labelText: 'Warehouse',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          items: warehouses.map((warehouse) {
+            return DropdownMenuItem<String>(
+              value: warehouse.id,
+              child: Text(warehouse.name),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedWarehouseId = value;
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a warehouse';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16.0),
+        DropdownButtonFormField<String>(
+          value: _selectedCategoryId,
+          hint: const Text('Select Category'),
+          decoration: InputDecoration(
+            labelText: 'Category',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          items: categories.map((category) {
+            return DropdownMenuItem<String>(
+              value: category.id,
+              child: Text(category.name),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedCategoryId = value;
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a category';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16.0),
+        DropdownButtonFormField<String>(
+          value: _selectedBrandId,
+          hint: const Text('Select Brand'),
+          decoration: InputDecoration(
+            labelText: 'Brand',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          items: brands.map((brand) {
+            return DropdownMenuItem<String>(
+              value: brand.id,
+              child: Text(brand.name),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedBrandId = value;
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a brand';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product Details',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[300]
+                : Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _barcodeController,
+          decoration: InputDecoration(
+            labelText: 'Barcode',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Colors.red,
+                width: 1,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            errorText: _barcodeError,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: () async {
+                try {
+                  final result = await BarcodeScanner.scan();
+                  if (result.rawContent.isNotEmpty) {
+                    setState(() {
+                      _barcodeController.text = result.rawContent;
+                    });
+                  }
+                  setState(() {
+                    _barcodeError = null;
+                  });
+                } catch (e) {
+                  setState(() {
+                    _barcodeError = 'Error scanning barcode';
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 16.0),
+        TextFormField(
+          controller: _nameController,
+          decoration: InputDecoration(
+            labelText: 'Product Name',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Colors.red,
+                width: 1,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a name';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16.0),
+        TextFormField(
+          controller: _descriptionController,
+          decoration: InputDecoration(
+            labelText: 'Description (Optional)',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            alignLabelWithHint: true,
+          ),
+          maxLines: 3,
+        ),
+        const SizedBox(height: 16.0),
+        TextFormField(
+          controller: _quantityController,
+          decoration: InputDecoration(
+            labelText: 'Quantity',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16.0),
+        TextFormField(
+          controller: _retailPriceController,
+          decoration: InputDecoration(
+            labelText: 'Retail Price',
+            prefixText: '\$ ',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Colors.red,
+                width: 1,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a retail price';
+            }
+            return null;
+          },
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: 16.0),
+        TextFormField(
+          controller: _salePriceController,
+          decoration: InputDecoration(
+            labelText: 'Sale Price',
+            prefixText: '\$ ',
+            filled: true,
+            fillColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey[850]
+                : Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[700]!
+                    : Colors.grey[300]!,
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: Pallete.primaryRed,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Colors.red,
+                width: 1,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a sale price (e.g., 0.0)';
+            }
+            return null;
+          },
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth > 900;
+        return SizedBox(
+          width: isWideScreen ? double.infinity : null,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              _showDeleteConfirmationDialog(context);
+            },
+            icon: const Icon(Icons.delete, size: 20),
+            label: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Pallete.primaryRed,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                vertical: isWideScreen ? 16 : 12,
+                horizontal: isWideScreen ? 24 : 16,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

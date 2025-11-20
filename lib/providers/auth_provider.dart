@@ -113,9 +113,14 @@ class AuthProvider extends ChangeNotifier {
       // Logout from backend
       await _authApiService.logout();
 
-      // Sign out from Google if logged in with Google
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
+      // Sign out from Google if logged in with Google (only on supported platforms)
+      try {
+        if (await _googleSignIn.isSignedIn()) {
+          await _googleSignIn.signOut();
+        }
+      } catch (e) {
+        // Google Sign-In not available on this platform (e.g., Windows)
+        print('Google Sign-In not available: $e');
       }
 
       // Clear product-related data

@@ -16,7 +16,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class LocalDatabaseService {
   static Database? _database;
   static const String _databaseName = 'inventory_cache.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   // Table names
   static const String _productsTable = 'products';
@@ -88,7 +88,8 @@ class LocalDatabaseService {
     await db.execute('''
       CREATE TABLE $_categoriesTable (
         id INTEGER PRIMARY KEY,
-        name TEXT
+        category_name TEXT,
+        description TEXT
       )
     ''');
 
@@ -96,14 +97,44 @@ class LocalDatabaseService {
     await db.execute('''
       CREATE TABLE $_brandsTable (
         id INTEGER PRIMARY KEY,
-        name TEXT
+        brand_name TEXT,
+        description TEXT
       )
     ''');
   }
 
   /// Handle database upgrades
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Handle migrations here if needed
+    if (oldVersion < 2) {
+      // Drop and recreate tables with correct schema
+      await db.execute('DROP TABLE IF EXISTS $_categoriesTable');
+      await db.execute('DROP TABLE IF EXISTS $_brandsTable');
+      await db.execute('DROP TABLE IF EXISTS $_warehousesTable');
+      
+      // Recreate with correct column names
+      await db.execute('''
+        CREATE TABLE $_warehousesTable (
+          id INTEGER PRIMARY KEY,
+          name TEXT
+        )
+      ''');
+      
+      await db.execute('''
+        CREATE TABLE $_categoriesTable (
+          id INTEGER PRIMARY KEY,
+          category_name TEXT,
+          description TEXT
+        )
+      ''');
+      
+      await db.execute('''
+        CREATE TABLE $_brandsTable (
+          id INTEGER PRIMARY KEY,
+          brand_name TEXT,
+          description TEXT
+        )
+      ''');
+    }
   }
 
   // ============ PRODUCTS ============

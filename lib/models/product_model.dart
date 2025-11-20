@@ -55,7 +55,7 @@ class Product {
     List<String> images = [];
     if (json['product_images'] != null) {
       images = List<String>.from(json['product_images'].map((imageJson) =>
-          '${ApiConstants.BASE_URL_WITHOUT_API}/${imageJson['image'] ?? ''}'));
+          '${ApiConstants.BASE_URL_WITHOUT_API}/uploads/products/${imageJson['image'] ?? ''}'));
     }
 
     return Product(
@@ -85,7 +85,7 @@ class Product {
       imageUrl: json['product_images'] != null &&
               json['product_images'].isNotEmpty &&
               json['product_images'][0]['image'] != null
-          ? '${ApiConstants.BASE_URL_WITHOUT_API}/${json['product_images'][0]['image']}'
+          ? '${ApiConstants.BASE_URL_WITHOUT_API}/uploads/products/${json['product_images'][0]['image']}'
           : '', // Handle null value for imageUrl
       warehouseTag:
           json['warehouse'] != null && json['warehouse']['name'] != null
@@ -145,7 +145,7 @@ class Category {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'id': id,
       'category_name': name,
       if (description != null) 'description': description,
     };
@@ -170,7 +170,7 @@ class Warehouse {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'id': id,
       'name': name,
     };
   }
@@ -197,7 +197,7 @@ class Brand {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'id': id,
       'brand_name': name,
       if (description != null) 'description': description,
     };

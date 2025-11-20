@@ -158,7 +158,7 @@ class ApiService {
     }
   }
   
-  /// Upload file (multipart)
+  /// Upload file (multipart) - POST
   Future<Response> uploadFile(
     String path,
     FormData formData, {
@@ -167,6 +167,25 @@ class ApiService {
   }) async {
     try {
       return await _dio.post(
+        path,
+        data: formData,
+        options: options,
+        onSendProgress: onSendProgress,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+  
+  /// Upload file with PUT (multipart)
+  Future<Response> uploadFilePut(
+    String path,
+    FormData formData, {
+    Options? options,
+    ProgressCallback? onSendProgress,
+  }) async {
+    try {
+      return await _dio.put(
         path,
         data: formData,
         options: options,

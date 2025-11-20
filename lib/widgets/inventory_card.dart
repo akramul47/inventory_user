@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
 import 'package:inventory_user/screens/add_item.dart';
-import 'package:inventory_user/screens/product_details_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 
@@ -90,16 +89,24 @@ class _MyCardWidgetState extends State<MyCardWidget> {
 
     return GestureDetector(
       onTap: () {
-        // Navigate to product details screen
+        // Navigate to edit product screen
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ProductDetailsScreen(product: product),
+            builder: (context) => AddItemPage(
+              initialQRCode: product.barcode,
+              initialName: product.name,
+              initialDescription: product.description,
+              initialWarehouseTag: product.warehouseTag,
+              product: product, // Pass the product object for updating
+              isUpdatingItem: true, // Set the flag for updating
+              refreshDataCallback: widget.refreshDataCallback,
+            ),
           ),
         );
       },
       onLongPress: () {
-        // Long press to edit product
+        // Long press to edit product (same as tap now)
         Navigator.push(
           context,
           MaterialPageRoute(

@@ -320,11 +320,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Pallete.backgroundColor,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWideScreen = constraints.maxWidth > 800;
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Pallete.backgroundColor,
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth > 800;
 
           return Column(
             children: [
@@ -405,6 +406,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           'Add Category',
           style: TextStyle(color: Colors.white),
         ),
+      ),
       ),
     );
   }

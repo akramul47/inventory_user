@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:inventory_user/screens/dashboard/admin_overview_screen.dart';
 import 'package:inventory_user/screens/dashboard/warehouse_management_screen.dart';
 import 'package:inventory_user/screens/dashboard/category_management_screen.dart';
@@ -15,43 +16,29 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  int _selectedIndex = 0;
-
-  void _navigateToTab(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-  List<Widget> get _screens => [
-        AdminOverviewScreen(onNavigateToTab: _navigateToTab),
-        const WarehouseManagementScreen(),
-        const CategoryManagementScreen(),
-        const BrandManagementScreen(),
-      ];
-
-  final List<String> _titles = const [
-    'Admin Overview',
-    'Warehouse Management',
-    'Category Management',
-    'Brand Management',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Pallete.backgroundColor,
-      appBar: AppBar(
-        title: Text(
-          _titles[_selectedIndex],
-          style: const TextStyle(color: Colors.white),
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (didPop) return;
+        // Move app to background instead of closing
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
         backgroundColor: Pallete.backgroundColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        appBar: AppBar(
+          title: const Text(
+            'Dashboard',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Pallete.backgroundColor,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        drawer: _buildDrawer(),
+        body: const AdminOverviewScreen(),
       ),
-      drawer: _buildDrawer(),
-      body: _screens[_selectedIndex],
     );
   }
 
@@ -111,25 +98,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _buildDrawerItem(
-                  icon: Icons.dashboard,
-                  title: 'Overview',
-                  index: 0,
+                ListTile(
+                  leading: const Icon(Icons.dashboard, color: Colors.white70),
+                  title: const Text('Overview', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer - already on overview
+                  },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.warehouse,
-                  title: 'Warehouses',
-                  index: 1,
+                ListTile(
+                  leading: const Icon(Icons.warehouse, color: Colors.white70),
+                  title: const Text('Warehouses', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WarehouseManagementScreen(),
+                      ),
+                    );
+                  },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.category,
-                  title: 'Categories',
-                  index: 2,
+                ListTile(
+                  leading: const Icon(Icons.category, color: Colors.white70),
+                  title: const Text('Categories', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CategoryManagementScreen(),
+                      ),
+                    );
+                  },
                 ),
-                _buildDrawerItem(
-                  icon: Icons.business_center,
-                  title: 'Brands',
-                  index: 3,
+                ListTile(
+                  leading: const Icon(Icons.business_center, color: Colors.white70),
+                  title: const Text('Brands', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BrandManagementScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const Divider(color: Colors.white24, height: 32),
                 ListTile(
@@ -148,35 +161,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    required int index,
-  }) {
-    final isSelected = _selectedIndex == index;
-    return ListTile(
-      selected: isSelected,
-      selectedTileColor: Pallete.gradient2.withOpacity(0.2),
-      leading: Icon(
-        icon,
-        color: isSelected ? Pallete.gradient2 : Colors.white70,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: isSelected ? Pallete.gradient2 : Colors.white,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        Navigator.pop(context); // Close drawer
-      },
     );
   }
 }

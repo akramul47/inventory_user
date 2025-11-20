@@ -20,7 +20,10 @@ class MasterDataApiService {
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final warehousesData = data['warehouses'] as List;
+        final warehousesData = data['data'] as List?;
+        if (warehousesData == null) {
+          return [];
+        }
         return warehousesData
             .map((json) => Warehouse.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -105,7 +108,7 @@ class MasterDataApiService {
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final categoriesData = data['categories'];
+        final categoriesData = data['data'];
 
         // Handle null or empty response
         if (categoriesData == null || categoriesData is! List) {
@@ -205,7 +208,7 @@ class MasterDataApiService {
 
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        final brandsData = data['brands'];
+        final brandsData = data['data'];
 
         // Handle null or empty response
         if (brandsData == null || brandsData is! List) {
