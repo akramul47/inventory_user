@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthProvider extends ChangeNotifier {
   final AuthApiService _authApiService = AuthApiService();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  
+
   bool _isLoggedIn;
 
   AuthProvider(this._isLoggedIn);
@@ -43,20 +43,32 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Register with name, email and password
+  Future<void> register(String name, String email, String password) async {
+    try {
+      await _authApiService.register(name, email, password);
+      await updateLoginStatus(true);
+    } catch (e) {
+      print('Registration failed: $e');
+      rethrow;
+    }
+  }
+
   /// Login with Google
   Future<void> loginWithGoogle(BuildContext context) async {
     try {
       // Sign in with Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         // User cancelled the sign-in
         return;
       }
 
       // Get Google authentication
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
       // Send ID token to backend
       final idToken = googleAuth.idToken;
       if (idToken == null) {
@@ -81,12 +93,12 @@ class AuthProvider extends ChangeNotifier {
 
       // Logout from backend
       await _authApiService.logout();
-      
+
       // Sign out from Google if logged in with Google
       if (await _googleSignIn.isSignedIn()) {
         await _googleSignIn.signOut();
       }
-      
+
       // Clear product-related data
       final ProductProvider productProvider = Provider.of<ProductProvider>(
           navigatorKey.currentContext!,

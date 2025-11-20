@@ -3,6 +3,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const masterDataRoutes = require('./routes/masterData');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
@@ -16,6 +19,9 @@ app.use('/uploads', express.static('uploads'));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api', masterDataRoutes); // /api/warehouses, /api/categories, /api/brands
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:inventory_user/main.dart';
 import 'package:inventory_user/models/product_model.dart';
@@ -9,7 +10,7 @@ import 'package:provider/provider.dart';
 class ProductProvider extends ChangeNotifier {
   final ProductApiService _productApiService = ProductApiService();
   final LocalDatabaseService _localDb = LocalDatabaseService();
-  
+
   final List<Product> _products = [];
   List<Warehouse> _warehouses = [];
   List<Category> _categories = [];
@@ -49,14 +50,13 @@ class ProductProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> fetchProductsByPage(int page) async {
     try {
       final response = await _productApiService.getProducts(page);
-      
+
       if (response['products'] != null) {
         final productsData = response['products']['data'] as List;
         _totalProducts = response['products']['total'];
 
-        final List<Product> nextPageProducts = productsData
-            .map((data) => Product.fromJson(data))
-            .toList();
+        final List<Product> nextPageProducts =
+            productsData.map((data) => Product.fromJson(data)).toList();
 
         // Cache products offline
         await _localDb.saveProducts(nextPageProducts);
@@ -68,11 +68,11 @@ class ProductProvider extends ChangeNotifier {
           'next_page_url': nextPageUrl,
         };
       }
-      
+
       throw Exception('Invalid response format');
     } catch (e) {
       print('Error fetching products: $e - Loading from cache');
-      
+
       // Load from cache on error
       final cachedProducts = await _localDb.getCachedProducts();
       return {
@@ -127,15 +127,15 @@ class ProductProvider extends ChangeNotifier {
 
       // Try to fetch from API
       _warehouses = await _productApiService.getWarehouses();
-      
+
       // Cache offline
       await _localDb.saveWarehouses(_warehouses);
-      
+
       notifyListeners();
       return _warehouses;
     } catch (e) {
       print('Error fetching warehouses: $e - Loading from cache');
-      
+
       // Load from cache on error
       _warehouses = await _localDb.getCachedWarehouses();
       notifyListeners();
@@ -149,15 +149,15 @@ class ProductProvider extends ChangeNotifier {
   Future<List<Category>> fetchCategories() async {
     try {
       _categories = await _productApiService.getCategories();
-      
+
       // Cache offline
       await _localDb.saveCategories(_categories);
-      
+
       notifyListeners();
       return _categories;
     } catch (e) {
       print('Error fetching categories: $e - Loading from cache');
-      
+
       // Load from cache on error
       _categories = await _localDb.getCachedCategories();
       notifyListeners();
@@ -171,15 +171,15 @@ class ProductProvider extends ChangeNotifier {
   Future<List<Brand>> fetchBrands() async {
     try {
       _brands = await _productApiService.getBrands();
-      
+
       // Cache offline
       await _localDb.saveBrands(_brands);
-      
+
       notifyListeners();
       return _brands;
     } catch (e) {
       print('Error fetching brands: $e - Loading from cache');
-      
+
       // Load from cache on error
       _brands = await _localDb.getCachedBrands();
       notifyListeners();
@@ -211,14 +211,29 @@ class ProductProvider extends ChangeNotifier {
   // ============ PRODUCT MANAGEMENT ============
 
   /// Add a new product
-  void addProduct(Product newProduct) {
-    _products.add(newProduct);
-    notifyListeners();
+  Future<void> addProduct(
+      Map<String, dynamic> productData, List<File> images) async {
+    try {
+      await _productApiService.createProduct(productData, images);
+      // Refresh list
+      resetCurrentPage();
+      await fetchProductsByPage(1);
+    } catch (e) {
+      print('Error adding product: $e');
+      rethrow;
+    }
   }
 
-  /// Remove a product by its ID
-  void removeProductById(int id) {
-    _products.removeWhere((product) => product.id == id);
-    notifyListeners();
+  /// Delete a product by its ID
+  Future<void> deleteProduct(int id) async {
+    try {
+      await _productApiService.deleteProduct(id);
+      // Remove from local list
+      _products.removeWhere((product) => product.id == id);
+      notifyListeners();
+    } catch (e) {
+      print('Error deleting product: $e');
+      rethrow;
+    }
   }
 }
