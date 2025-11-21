@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
-import '../models/product_model.dart';
-import '../providers/product_provider.dart';
-import '../services/auth_servcie.dart';
-import '../utils/pallete.dart';
+import '../../models/product_model.dart';
+import '../../providers/product_provider.dart';
+import '../../services/auth_servcie.dart';
+import '../../utils/pallete.dart';
 
 class ShiftProductPage extends StatefulWidget {
   const ShiftProductPage({Key? key}) : super(key: key);

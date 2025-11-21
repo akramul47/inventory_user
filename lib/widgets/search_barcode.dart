@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:barcode_scan2/barcode_scan2.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:inventory_user/screens/add_item.dart';
+import 'package:inventory_user/screens/user/add_item.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/services/auth_servcie.dart';
 import 'package:inventory_user/utils/pallete.dart';
@@ -21,7 +21,6 @@ class SearchFromBarcode {
   static Future<void> _fetchProductDetailsAndNavigate(
       BuildContext context, String? scannedCode) async {
     if (scannedCode != null) {
-
       showDialog(
         context: context,
         barrierDismissible:

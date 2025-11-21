@@ -8,10 +8,10 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 
-import '../models/product_model.dart';
-import '../providers/product_provider.dart';
-import '../services/auth_servcie.dart';
-import '../utils/pallete.dart';
+import '../../models/product_model.dart';
+import '../../providers/product_provider.dart';
+import '../../services/auth_servcie.dart';
+import '../../utils/pallete.dart';
 import 'package:csv/csv.dart';
 
 class ExportImportPage extends StatefulWidget {
@@ -239,7 +239,6 @@ class _ExportImportPageState extends State<ExportImportPage> {
                     icon: const Icon(Icons.upload_file),
                     label: const Text('Choose File'),
                   ),
-
                   const SizedBox(width: 16),
                   SizedBox(
                     width: 120,

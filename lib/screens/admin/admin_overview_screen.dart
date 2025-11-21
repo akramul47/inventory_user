@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:inventory_user/models/product_model.dart';
-import 'package:inventory_user/screens/dashboard/warehouse_management_screen.dart';
-import 'package:inventory_user/screens/dashboard/category_management_screen.dart';
-import 'package:inventory_user/screens/dashboard/brand_management_screen.dart';
+import 'package:inventory_user/screens/admin/warehouse_management_screen.dart';
+import 'package:inventory_user/screens/admin/category_management_screen.dart';
+import 'package:inventory_user/screens/admin/brand_management_screen.dart';
 import 'package:inventory_user/services/master_data_api_service.dart';
 import 'package:inventory_user/utils/pallete.dart';
 
@@ -92,7 +91,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      childAspectRatio: 1.0, // Increased from 1.5 to give more height
+      childAspectRatio: 1.0,
       children: [
         _buildStatCard(
           icon: Icons.warehouse,

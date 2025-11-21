@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/providers/auth_provider.dart';
-import 'package:inventory_user/screens/product_shift_screen.dart';
-import 'package:inventory_user/screens/report_screen.dart';
-import 'package:inventory_user/screens/sold_report_screen.dart';
+import 'package:inventory_user/screens/user/product_shift_screen.dart';
+import 'package:inventory_user/screens/user/report_screen.dart';
+import 'package:inventory_user/screens/user/sold_report_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../screens/export_import_screen.dart';
+import '../screens/user/export_import_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;

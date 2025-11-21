@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:inventory_user/models/product_model.dart';
 import 'package:inventory_user/providers/product_provider.dart';
-import 'package:inventory_user/screens/dashboard/product_form_dialog.dart';
+import 'package:inventory_user/screens/admin/product_form_dialog.dart';
 import 'package:inventory_user/utils/pallete.dart';
 import 'package:provider/provider.dart';
 

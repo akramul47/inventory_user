@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:inventory_user/screens/dashboard/admin_overview_screen.dart';
-import 'package:inventory_user/screens/dashboard/warehouse_management_screen.dart';
-import 'package:inventory_user/screens/dashboard/category_management_screen.dart';
-import 'package:inventory_user/screens/dashboard/brand_management_screen.dart';
+import 'package:inventory_user/screens/admin/admin_overview_screen.dart';
+import 'package:inventory_user/screens/admin/warehouse_management_screen.dart';
+import 'package:inventory_user/screens/admin/category_management_screen.dart';
+import 'package:inventory_user/screens/admin/brand_management_screen.dart';
 import 'package:inventory_user/utils/pallete.dart';
 
 /// Admin Dashboard Screen
@@ -100,14 +100,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.dashboard, color: Colors.white70),
-                  title: const Text('Overview', style: TextStyle(color: Colors.white)),
+                  title: const Text('Overview',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer - already on overview
+                    Navigator.pop(
+                        context); // Close drawer - already on overview
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.warehouse, color: Colors.white70),
-                  title: const Text('Warehouses', style: TextStyle(color: Colors.white)),
+                  title: const Text('Warehouses',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Navigator.push(
@@ -120,7 +123,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.category, color: Colors.white70),
-                  title: const Text('Categories', style: TextStyle(color: Colors.white)),
+                  title: const Text('Categories',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Navigator.push(
@@ -132,8 +136,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.business_center, color: Colors.white70),
-                  title: const Text('Brands', style: TextStyle(color: Colors.white)),
+                  leading:
+                      const Icon(Icons.business_center, color: Colors.white70),
+                  title: const Text('Brands',
+                      style: TextStyle(color: Colors.white)),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
                     Navigator.push(

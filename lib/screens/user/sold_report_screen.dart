@@ -3,10 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../models/product_model.dart';
-import '../providers/product_provider.dart';
-import '../services/auth_servcie.dart';
-import '../utils/pallete.dart';
+import '../../models/product_model.dart';
+import '../../providers/product_provider.dart';
+import '../../services/auth_servcie.dart';
+import '../../utils/pallete.dart';
 
 class SoldReportPage extends StatefulWidget {
   const SoldReportPage({Key? key}) : super(key: key);
